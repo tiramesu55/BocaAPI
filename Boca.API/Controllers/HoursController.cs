@@ -1,6 +1,4 @@
-﻿using Boca.API.Entities;
-using BocaAPI.Repository;
-using Microsoft.AspNetCore.Http;
+﻿using BocaAPI.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BocaAPI.Controllers
@@ -9,16 +7,31 @@ namespace BocaAPI.Controllers
     [ApiController]
     public class HoursController : ControllerBase
     {
-        private IHoursRepository hr;
-        public HoursController(IHoursRepository r)
+        private ILoggerService _test;
+        private ICacheService _cache;
+
+
+        public HoursController(ILoggerService test, ICacheService cache)
         {
-            hr = r;
+            _test = test;
+            _cache = cache;
         }
+
         [HttpGet]
-        public ActionResult<SourceTime> GetTimes()
+        public async Task<ActionResult> TestLog()
         {
-            var x = new SourceTime("xxx") { Description = "yyyyyy", Id=3 };
+            _test.LogInfo(1, "Test message");
+
+            var ololo = await _cache.GetPoliceCodes();   
+
             return Ok();
         }
+
+        //[HttpGet]
+        //public ActionResult<SourceTime> GetTimes()
+        //{
+        //    var x = new SourceTime("xxx") { Description = "yyyyyy", Id = 3 };
+        //    return Ok();
+        //}
     }
 }
