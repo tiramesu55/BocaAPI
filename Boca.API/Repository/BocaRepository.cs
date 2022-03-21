@@ -1,48 +1,65 @@
 ﻿using BocaAPI.Interfaces;
-using BocaAPI.Models;
 using BocaAPI.Models.DTO;
 using Dapper;
 using System.Data;
 using System.Data.SqlClient;
-using System.Linq;
 
 namespace BocaAPI.Repository
 {
     public class BocaRepository : IBocaRepository
     {
         private IDbConnection db;
-        public BocaRepository( string connString)
-        {
-            db = new SqlConnection( connString);
-        }
-        //public IEnumerable<SourceTime> GetHoursAsync()
-        //{
-        //    return db.Query<SourceTime>("SELECT * FROM Master_Hours").ToList();
-        //}
 
+        public BocaRepository(string connectionString)
+        {
+            db = new SqlConnection(connectionString);
+        }
+        
 
         public async Task<List<PoliceCode>> GetPoliceCodes() => (await db.QueryAsync<PoliceCode>("SELECT * FROM dbo.police_codes")).ToList();
 
-        public async void UploadToDatabase(List<VCSExport> records)
-        {
-            var sql = @"merge into police_master t using
-                (values(@PAYID, @WCPID, @WCABR,@ReasonCode, @Reason, @ROSDT, @STRDT, @ENDDT, @SHFTAB, @REMOVED, @RECTYP, @PAYDURAT, @Comment))
-                s([PayId], [WcpId], [ReasonCode], [Reason], [ROSDate],[STRDate], [ENDDate], [SHFTAB], [Removed], [RecType], [PayDuration], [Comment]) 
-                on t.PayId = s.PayId and s.[WcpId] = t.[WcpId] and t.VCABR=s.VCABR and t.[ROSDate] = s.[ROSDate] and t.[STRDate] = s.[STRDate] and t.[ENDDate] = s.[ENDDate] and t.[SHFTAB] = s.[SHFTAB]
-                when not matched then
-                insert values(s.[PayId], s.[WcpId], s.[ReasonCode], s.[Reason], s.[ROSDate], s.[STRDate], s.[ENDDate], s.[SHFTAB], s.[Removed], s.[RecType], s.[PayDuration], s.[Comment]);";
-            using var tran = db.BeginTransaction();
-            try
-            {
-                await db.ExecuteAsync(sql, records, tran);
-                tran.Commit();
-            }
-            catch (Exception ex)
-            {
-                tran.Rollback();
-                //todo log exception to DB log table
-            }
-            return;
-        }
+        public async Task<List<VCSExport>> UploadToDatabase(List<VCSExport> records) =>
+            (await db.QueryAsync<VCSExport>(@"MERGE INTO police_master t
+USING ( VALUES ( @PAYID,
+      @WCPID,
+      @WCABR,
+      @ReasonCode,
+      @Reason,
+      @ROSDT,
+      @STRDT,
+      @ENDDT,
+      @SHFTAB,
+      @REMOVED,
+      @RECTYP,
+      @PAYDURAT,
+      @Comment ) ) s([PayId], [WcpId], [ReasonCode], [Reason], [ROSDate],
+      [STRDate], [ENDDate], [SHFTAB], [Removed], [RecType], [PayDuration],
+      [Comment])
+ON t.payid = s.payid
+   AND s.[WcpId] = t.[wcpid]
+   AND t.vcabr = s.vcabr
+   AND t.[rosdate] = s.[ROSDate]
+   AND t.[strdate] = s.[STRDate]
+   AND t.[enddate] = s.[ENDDate]
+   AND t.[shftab] = s.[SHFTAB]
+WHEN NOT MATCHED THEN
+  INSERT
+  VALUES ( s.[payid],
+           s.[wcpid],
+           s.[reasoncode],
+           s.[reason],
+           s.[rosdate],
+           s.[strdate],
+           s.[enddate],
+           s.[shftab],
+           s.[removed],
+           s.[rectype],
+           s.[payduration],
+           s.[comment] )
+OUTPUT inserted.*; ", records)).ToList();
+
+
+
+
     }
 }

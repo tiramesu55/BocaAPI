@@ -17,5 +17,12 @@ namespace BocaAPI.Services
 
             Log.CloseAndFlush();
         }
+
+        public void LogException(Exception ex)
+        {
+            Log.Error(ex.ToString());
+
+            Log.CloseAndFlush();
+        }
     }
 }
