@@ -18,8 +18,8 @@ namespace BocaAPI.Repository
 
         public async Task<List<PoliceCode>> GetPoliceCodes() => (await db.QueryAsync<PoliceCode>("SELECT * FROM dbo.police_codes")).ToList();
 
-        public async Task<List<VCSExport>> UploadToDatabase(List<VCSExport> records) =>
-            (await db.QueryAsync<VCSExport>(@"MERGE INTO police_master t
+        public async Task<List<PoliceMaster>> UploadToDatabase(List<VCSExport> records) =>
+            (await db.QueryAsync<PoliceMaster>(@"MERGE INTO police_master t
 USING ( VALUES ( @PAYID,
       @WCPID,
       @WCABR,

@@ -2,39 +2,54 @@
 using BocaAPI.Interfaces;
 using BocaAPI.Models;
 using BocaAPI.Models.DTO;
-using Microsoft.Extensions.Caching.Memory;
-using System.Globalization;
+using BocaAPI.Validators;
+using Microsoft.Extensions.Options;
 
 namespace BocaAPI.Services
 {
-    public class BocaService: ServiceBase, IBocaService
+    public class BocaService : ServiceBase, IBocaService
     {
         private readonly ICacheService _cacheService;
         private readonly IBocaRepository _repository;
-        
-        public BocaService(ICacheService cacheService, IBocaRepository repository, ILoggerService logger): base(logger)
+        private readonly Settings _settings;
+
+        public BocaService(ICacheService cacheService, IBocaRepository repository, ILoggerService logger, IOptions<Settings> options) : base(logger)
         {
             _cacheService = cacheService;
             _repository = repository;
+            _settings = options.Value;
         }
 
         public async Task UploadInputFileToDatabase() => await ExecuteOperationAsync(async () =>
         {
-            //TODO: Stub, needs normal configuration
-            string inputFileName = "";
-            string outputFileName = "";
+            foreach (var file in Directory.GetFiles(_settings.InputFilePath, "*.csv"))
+            {
+                var fileName = Path.GetFileName(file);
 
-            var records = CsvExtensions.ReadFromCsv<VCSExport>(File.OpenRead(inputFileName));
+                var validator = new PoliceMasterValidator();
 
-            var policeCodes = await _cacheService.GetPoliceCodes();
+                var records = CsvExtensions.ReadFromCsv<VCSExport>(File.OpenRead(file));
 
-            //TODO: Validation
-            var inserted = await _repository.UploadToDatabase(records);
+                var policeCodes = await _cacheService.GetPoliceCodes();
 
-            File.WriteAllBytes(outputFileName, CsvExtensions.SaveToCSV(inserted));
+                var validatedRecords = records.Select((r, i) =>
+                {
+                    var validationResult = validator.Validate(r);
+                    return new { Number = i, Record = r, IsValid = validationResult.IsValid, Errors = validationResult.Errors.Select(e => e.ErrorMessage).StringJoin() };
+                }).ToList();
 
+                validatedRecords.Where(r => !r.IsValid).ToList().ForEach(r => _logger.LogInfo(r.Number, r.Errors));
+
+                var inserted = await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
+
+                var finalResults = inserted.Select(r => (FinalResult)r).ToList();
+
+                File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
+
+                File.Delete(file);
+            }
         });
-        
+
 
     }
 }
