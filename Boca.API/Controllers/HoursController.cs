@@ -18,8 +18,8 @@ namespace BocaAPI.Controllers
             _service = bService;
         }
 
-        [HttpGet]
-        public async Task<ActionResult> TestLog()
+        [HttpGet("GetCodes")]
+        public async Task<ActionResult> GetCodes()
         {
             _test.LogInfo(1, "Test message");
 
@@ -31,8 +31,8 @@ namespace BocaAPI.Controllers
         /// this action returns OK if all records are loaded.  We can change to return the number of loaded records or the number of exceptions
         /// </summary>
         /// <returns></returns>
-        [HttpGet]
-        public async Task<ActionResult> LoadCsv()
+        [HttpGet("LoadFiles")]
+        public async Task<ActionResult> LoadFiles()
         {
             await _service.UploadInputFileToDatabase();
             return Ok();

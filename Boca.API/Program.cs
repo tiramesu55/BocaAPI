@@ -25,7 +25,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddMemoryCache();
 
-builder.Services.AddOptions<Settings>("BocaConfiguration");
+builder.Services.AddOptions<Settings>("Folders");
 
 
 builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
@@ -34,8 +34,7 @@ builder.Services.AddScoped<IBocaRepository>(s => new BocaRepository(builder.Conf
 builder.Services.AddScoped<ILoggerService, LoggerService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IBocaService, BocaService>();  //TODO why not Singleton?
-
-
+builder.Services.Configure<Settings>(builder.Configuration.GetSection("Folders"));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

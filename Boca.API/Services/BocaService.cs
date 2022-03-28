@@ -24,7 +24,10 @@ namespace BocaAPI.Services
 
     public async Task UploadInputFileToDatabase() => await ExecuteOperationAsync(async () =>
         {
-            foreach (var file in Directory.GetFiles(_settings.InputFilePath, "*.csv"))
+            string InputFolder = $@"{ _settings.BaseFilePath}\{_settings.InputFilePath}";
+            string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
+            string ArchiveFolder = $@"{ _settings.BaseFilePath}\{_settings.ArchiveFilePath}";
+            foreach (var file in Directory.GetFiles(InputFolder, "*.csv"))
             {
                 var fileName = Path.GetFileName(file);
 
@@ -42,13 +45,13 @@ namespace BocaAPI.Services
 
                 validatedRecords.Where(r => !r.IsValid).ToList().ForEach(r => _logger.LogInfo(r.Number, r.Errors));
 
-                var inserted = await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
+                await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
 
-                var finalResults = inserted.Select(r => (FinalResult)r).ToList();
+                //var finalResults = inserted.Select(r => (FinalResult)r).ToList();
+               //below is a separate call in a different controller
+               // File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
 
-                File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
-
-                File.Delete(file);
+                File.Move(file, $@"{ArchiveFolder}\{fileName}",true);  //move with overwrite
             }
         });
 
