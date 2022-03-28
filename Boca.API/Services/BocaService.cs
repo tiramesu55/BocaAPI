@@ -19,8 +19,10 @@ namespace BocaAPI.Services
             _repository = repository;
             _settings = options.Value;
         }
+        public IBocaRepository Repository{get { return _repository; }}
+        public ICacheService Cache { get { return _cacheService; } }
 
-        public async Task UploadInputFileToDatabase() => await ExecuteOperationAsync(async () =>
+    public async Task UploadInputFileToDatabase() => await ExecuteOperationAsync(async () =>
         {
             foreach (var file in Directory.GetFiles(_settings.InputFilePath, "*.csv"))
             {

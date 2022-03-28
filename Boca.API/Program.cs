@@ -33,7 +33,7 @@ builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configurati
 builder.Services.AddScoped<IBocaRepository>(s => new BocaRepository(builder.Configuration["ConnectionStrings:BocaDBConnectionString"]));
 builder.Services.AddScoped<ILoggerService, LoggerService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
-builder.Services.AddScoped<IBocaService, BocaService>();
+builder.Services.AddScoped<IBocaService, BocaService>();  //TODO why not Singleton?
 
 
 var app = builder.Build();
