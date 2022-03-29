@@ -3,5 +3,6 @@
     public interface ILoggerService
     {
         void LogInfo(int rowNum, string message);
+        void LogException(Exception ex);
     }
 }

@@ -1,37 +1,42 @@
 using BocaAPI.Interfaces;
+using BocaAPI.Models;
 using BocaAPI.Repository;
 using BocaAPI.Services;
-using Microsoft.EntityFrameworkCore;
+using FluentValidation.AspNetCore;
 using Serilog;
-using Serilog.Sinks.MSSqlServer;
-//using Boca.API.DbContexts;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers(opt=>
+builder.Services.AddControllers(opt =>
 {
     opt.ReturnHttpNotAcceptable = true;
 });
+//I do not see a need to inject valildator. Also Validator requires argument, which makes it all too complicated
+//    .AddFluentValidation(opt =>
+//{
+//    opt.ImplicitlyValidateChildProperties = true;
+//    opt.ImplicitlyValidateRootCollectionElements = true;
+//    opt.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+//});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddMemoryCache();
 
+builder.Services.AddOptions<Settings>("Folders");
+
 
 builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
-
-//builder.Services.AddDbContext<RecepieInfoContext>(
-//    dbContextOpts => dbContextOpts.UseSqlite(
-//          builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
 
 builder.Services.AddScoped<IBocaRepository>(s => new BocaRepository(builder.Configuration["ConnectionStrings:BocaDBConnectionString"]));
 builder.Services.AddScoped<ILoggerService, LoggerService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
-builder.Services.AddScoped<IBocaService, BocaService>();
-
-
+builder.Services.AddScoped<IBocaService, BocaService>();  //TODO why not Singleton?
+builder.Services.Configure<Settings>(builder.Configuration.GetSection("Folders"));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
