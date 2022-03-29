@@ -31,11 +31,13 @@ namespace BocaAPI.Services
             {
                 var fileName = Path.GetFileName(file);
 
-                var validator = new PoliceMasterValidator();
+                var policeCodes = await _cacheService.GetPoliceCodes();
+
+                var infiniumCodes = policeCodes.Select(p => p.Infinium_Codes).ToList();
+
+                var validator = new PoliceMasterValidator(infiniumCodes);
 
                 var records = CsvExtensions.ReadFromCsv<VCSExport>(File.OpenRead(file));
-
-                var policeCodes = await _cacheService.GetPoliceCodes();
 
                 var validatedRecords = records.Select((r, i) =>
                 {
@@ -43,6 +45,7 @@ namespace BocaAPI.Services
                     return new { Number = i, Record = r, IsValid = validationResult.IsValid, Errors = validationResult.Errors.Select(e => e.ErrorMessage).StringJoin() };
                 }).ToList();
 
+                var invalidRecords = validatedRecords.Where(r => !r.IsValid).ToList();
                 validatedRecords.Where(r => !r.IsValid).ToList().ForEach(r => _logger.LogInfo(r.Number, r.Errors));
 
                 await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());

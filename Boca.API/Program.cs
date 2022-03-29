@@ -13,12 +13,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers(opt =>
 {
     opt.ReturnHttpNotAcceptable = true;
-}).AddFluentValidation(opt =>
-{
-    opt.ImplicitlyValidateChildProperties = true;
-    opt.ImplicitlyValidateRootCollectionElements = true;
-    opt.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 });
+//I do not see a need to inject valildator. Also Validator requires argument, which makes it all too complicated
+//    .AddFluentValidation(opt =>
+//{
+//    opt.ImplicitlyValidateChildProperties = true;
+//    opt.ImplicitlyValidateRootCollectionElements = true;
+//    opt.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+//});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

@@ -20,33 +20,38 @@ namespace BocaAPI.Repository
 
         public async Task UploadToDatabase(List<VCSExport> records)
         {
-            await db.QueryAsync<PoliceMaster>(@"MERGE INTO police_master t
-                USING ( VALUES ( @PAYID,
-                      @WCPID,
-                      @WCABR,
-                      @ReasonCode,
-                      @Reason,
-                      @ROSDT,
-                      @STRDT,
-                      @ENDDT,
-                      @SHFTAB,
-                      @REMOVED,
-                      @RECTYP,
-                      @PAYDURAT,
-                      @Comment ) ) s([PayId], [WcpId], [ReasonCode], [Reason], [ROSDate],
-                      [STRDate], [ENDDate], [SHFTAB], [Removed], [RecType], [PayDuration],
-                      [Comment])
-                ON t.payid = s.payid
+            //insert into temp
+            await db.ExecuteAsync(
+                @"INSERT into temp_police_master
+                  ([payid],[wcpid],[Wcabr],[reasoncode],[reason],[rosdate],[strdate],[enddate],[shftab],[removed],[rectype],[payduration],[comment])  
+                  VALUES(@PAYID,
+                           @WCPID,
+                           @WCABR,  
+                           @ReasonCode,
+                           @Reason,
+                           @ROSDT,
+                           @STRDT,
+                           @ENDDT,
+                           @SHFTAB,
+                           @REMOVED,
+                           @RECTYP,
+                           @PAYDURAT,
+                           @Comment)", records);
+            var x = await db.ExecuteAsync(
+            @"MERGE INTO police_master t 
+                USING temp_police_master s
+                   ON t.payid = s.payid
                    AND s.[WcpId] = t.[wcpid]
-                   AND t.vcabr = s.vcabr
+                   AND t.[Wcabr] = s.[Wcabr]
                    AND t.[rosdate] = s.[ROSDate]
                    AND t.[strdate] = s.[STRDate]
                    AND t.[enddate] = s.[ENDDate]
                    AND t.[shftab] = s.[SHFTAB]
-                WHEN NOT MATCHED THEN
-                  INSERT
+                WHEN NOT MATCHED THEN 
+                    INSERT ([payid],[wcpid],[Wcabr],[reasoncode],[reason],[rosdate],[strdate],[enddate],[shftab],[removed],[rectype],[payduration],[comment])
                   VALUES ( s.[payid],
                            s.[wcpid],
+                           s.[Wcabr],
                            s.[reasoncode],
                            s.[reason],
                            s.[rosdate],
@@ -56,8 +61,8 @@ namespace BocaAPI.Repository
                            s.[removed],
                            s.[rectype],
                            s.[payduration],
-                           s.[comment] )", records);
-
+                           s.[comment] );"
+                );
         }
 
     }
