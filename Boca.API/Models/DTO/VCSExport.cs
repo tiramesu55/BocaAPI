@@ -1,20 +1,23 @@
-﻿namespace BocaAPI.Models.DTO
+﻿using CsvHelper.Configuration.Attributes;
+
+
+namespace BocaAPI.Models.DTO
 {
     public class VCSExport
     {
-        public int PAYID { get; set; }
-        public string WCPID { get; set; }
-        public string WCABR { get; set; }
-        public string ReasonCode { get; set; }
-        public string Reason { get; set; }
-        public DateTime ROSDT { get; set; }
-        public DateTime STRDT { get; set; }
-        public DateTime ENDDT { get; set; }
-        public string SHFTAB { get; set; }
-        public string REMOVED { get; set; }
-        public string RECTYP { get; set; }
-        public decimal PAYDURAT { get; set; }
-        public string Comment { get; set; }
+        [Name("PAYID")] public int PAYID { get; set; }
+        [Name("WCPID")] public string WCPID { get; set; }
+        [Name("WCABR")] public string WCABR { get; set; }
+        [Name("ReasonCode")] public string ReasonCode { get; set; }
+        [Name("Reason")] public string Reason { get; set; }
+        [Name("ROSDT")] public DateTime ROSDT { get; set; }
+        [Name("STRDT")] public DateTime STRDT { get; set; }
+        [Name("ENDDT")] public DateTime ENDDT { get; set; }
+        [Name("SHFTAB")] public string SHFTAB { get; set; }
+        [Name("REMOVED")] public string REMOVED { get; set; }
+        [Name("RECTYP")] public string RECTYP { get; set; }
+        [Name("PAYDURAT")] public decimal PAYDURAT { get; set; }
+        [Name("Comment")] public string Comment { get; set; }
 
     }
 }
