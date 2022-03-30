@@ -37,5 +37,24 @@ namespace BocaAPI.Controllers
             await _service.UploadInputFileToDatabase();
             return Ok();
         }
+        /// <summary>
+        /// this action returns OK if all records are loaded.  We can change to return the number of loaded records or the number of exceptions
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("ExportFile")]
+        public async Task<ActionResult> ExportFile()
+        {
+            //var finalResults = inserted.Select(r => (FinalResult)r).ToList();
+            //below is a separate call in a different controller
+            // File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
+
+            // File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
+            List<FinalResult> x = new List<FinalResult>();
+            var recs = await _service.Repository.GetForOutput();
+            var finalResults = recs.OrderBy(p => p.id).Select(r => (FinalResult)r).ToList();
+            //todo make a method in Boca Service
+            // File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
+            return Ok();
+        }
     }
 }

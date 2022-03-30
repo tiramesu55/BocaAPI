@@ -6,5 +6,6 @@ namespace BocaAPI.Interfaces
     {
         Task<List<PoliceCode>> GetPoliceCodes();
         Task  UploadToDatabase(List<VCSExport> records);
+        Task<List<PoliceMasterExport>> GetForOutput();
     }
 }

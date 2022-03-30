@@ -12,7 +12,7 @@
 		public string OperationType{ get; set; }
 
 
-		public static explicit operator FinalResult(PoliceMaster policeMaster) => new FinalResult
+		public static explicit operator FinalResult(PoliceMasterExport policeMaster) => new FinalResult
         {
 			EmployeeNumber = policeMaster.PayId,
 			AssignmentNumber = $"E{policeMaster.PayId}",
@@ -28,6 +28,7 @@
 				_ => 'A'
 			}, 
 			Comments = policeMaster.Comment,
+			PayrollTimeType = policeMaster.PayrollTimeType,
 			OperationType = "ADD"
         };		
 	}

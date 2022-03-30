@@ -17,6 +17,12 @@ namespace BocaAPI.Repository
         
 
         public async Task<List<PoliceCode>> GetPoliceCodes() => (await db.QueryAsync<PoliceCode>("SELECT * FROM dbo.police_codes")).ToList();
+        public async Task<List<PoliceMasterExport>> GetForOutput() => (await db.QueryAsync<PoliceMasterExport>(
+            @"SELECT id, PayId, WcpId, ROSDate, STRDate, ENDDate, Removed, PayDuration, 'STREIGHT OF POLICE' as PayrollTimeType, Comment FROM dbo.police_master
+            union all
+            SELECT id, PayId, WcpId, ROSDate, STRDate, ENDDate, Removed, PayDuration, 'OVERTIME POLICE' as PayrollTimeType, Comment FROM dbo.police_master
+            where WcpId = 'OT' OR WcpId= 'OTC'
+           ")).ToList();
 
         public async Task UploadToDatabase(List<VCSExport> records)
         {
