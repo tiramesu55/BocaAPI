@@ -44,7 +44,7 @@ namespace BocaAPI.Repository
                            @PAYDURAT,
                            @Comment)", records);
 
-            var x = await db.ExecuteAsync(
+            var x = await db.QueryAsync<VCSExport>(
             @"MERGE INTO police_master t 
                 USING temp_police_master s
                    ON t.payid = s.payid
@@ -69,7 +69,7 @@ namespace BocaAPI.Repository
                            s.[rectype],
                            s.[payduration],
                            s.[comment] ) OUTPUT inserted.* ;"
-                );
+                ).To;
         }
 
     }
