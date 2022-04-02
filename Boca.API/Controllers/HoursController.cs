@@ -23,9 +23,9 @@ namespace BocaAPI.Controllers
         {
             _test.LogInfo(1, "Test message");
 
-            var ololo = await _service.Cache.GetPoliceCodes();   
+            var codes = await _service.Cache.GetPoliceCodes();   
 
-            return Ok();
+            return Ok(codes);
         }
         /// <summary>
         /// this action returns OK if all records are loaded.  We can change to return the number of loaded records or the number of exceptions
