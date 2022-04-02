@@ -43,6 +43,7 @@ namespace BocaAPI.Repository
                            @RECTYP,
                            @PAYDURAT,
                            @Comment)", records);
+
             var x = await db.ExecuteAsync(
             @"MERGE INTO police_master t 
                 USING temp_police_master s
@@ -67,7 +68,7 @@ namespace BocaAPI.Repository
                            s.[removed],
                            s.[rectype],
                            s.[payduration],
-                           s.[comment] );"
+                           s.[comment] ) OUTPUT inserted.* ;"
                 );
         }
 
