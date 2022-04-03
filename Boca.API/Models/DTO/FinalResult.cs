@@ -10,25 +10,22 @@
 		public string PayrollTimeType{ get; set; }
 		public string Comments{ get; set; }
 		public string OperationType{ get; set; }
+		public bool duplicate { get; set; }
 
-
-		public static explicit operator FinalResult(PoliceMaster policeMaster) => new FinalResult
+		public FinalResult() 
+		{ 
+		}
+		public FinalResult(RawExportData export, PoliceCode rf) 
         {
-			EmployeeNumber = policeMaster.PayId,
-			AssignmentNumber = $"E{policeMaster.PayId}",
-			Date = policeMaster.ROSDate,
-			Hours = policeMaster.PayDuration,
-			HoursTypeIndicator = policeMaster.WcpId switch
-            {
-				"OT" => 'R',
-				"OTC" => 'R',
-				"REG" => 'R',
-				"STR" => 'R',
-				"STRC" => 'R',
-				_ => 'A'
-			}, 
-			Comments = policeMaster.Comment,
-			OperationType = "ADD"
-        };		
+			EmployeeNumber = export.PayId;
+			AssignmentNumber = $"E{export.PayId}";
+			Date = export.ROSDate;
+			Hours = export.PayDuration;	 
+			Comments = export.Comment;
+			PayrollTimeType = rf.Oracle;
+			HoursTypeIndicator = rf.HourType[0];  //first char	
+			OperationType = "ADD";
+			duplicate = export.WcpId == "OT" || export.WcpId == "OTC" ? true : false;
+        }		
 	}
 }

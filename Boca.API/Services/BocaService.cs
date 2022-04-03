@@ -22,8 +22,9 @@ namespace BocaAPI.Services
         public IBocaRepository Repository{get { return _repository; }}
         public ICacheService Cache { get { return _cacheService; } }
 
-    public async Task UploadInputFileToDatabase() => await ExecuteOperationAsync(async () =>
+        public async Task<List<RawExportData>> UploadInputFileToDatabase()
         {
+            List<RawExportData> result = new List<RawExportData>();
             string InputFolder = $@"{ _settings.BaseFilePath}\{_settings.InputFilePath}";
             string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
             string ArchiveFolder = $@"{ _settings.BaseFilePath}\{_settings.ArchiveFilePath}";
@@ -48,15 +49,41 @@ namespace BocaAPI.Services
                 var invalidRecords = validatedRecords.Where(r => !r.IsValid).ToList();
                 validatedRecords.Where(r => !r.IsValid).ToList().ForEach(r => _logger.LogInfo(r.Number, r.Errors));
 
-                await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
-
+                var rtn = await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
+                result.AddRange(rtn.ToList());
                 //var finalResults = inserted.Select(r => (FinalResult)r).ToList();
-               //below is a separate call in a different controller
-               // File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
+                //below is a separate call in a different controller
+                // File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
 
-                File.Move(file, $@"{ArchiveFolder}\{fileName}",true);  //move with overwrite
+                File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
             }
-        });
+            return result;
+        }
+        public async Task<List<FinalResult>> ExportLatest()
+        {
+            string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
+            var codes = await _cacheService.GetPoliceCodes();
+            var fromDb = await _repository.GetForOutput();
+            var orgList = (from pTime in fromDb join cRef in codes on pTime.WcpId equals cRef.Infinium_Codes
+                          select new FinalResult(pTime, cRef)).ToList();
+            var otcList = orgList.Where(p => p.duplicate).Select(p => new FinalResult
+            {
+                EmployeeNumber = p.EmployeeNumber,
+                AssignmentNumber = p.AssignmentNumber,
+                Date = p.Date,
+                Hours = p.Hours,
+                HoursTypeIndicator = p.HoursTypeIndicator,
+                PayrollTimeType = "STRAIGHT OT POLICE",
+                Comments = p.Comments,
+                OperationType = p.OperationType,
+                duplicate = p.duplicate,
+            });
+         
+            var combined = orgList.Concat(otcList).OrderBy( p => p.Date).ThenBy(p => p.EmployeeNumber).ToList();   // otc duplicated
+
+            File.WriteAllBytes(Path.Combine(OutputFolder, "result.csv"), CsvExtensions.SaveToCSV(combined));
+            return combined;
+        }
 
 
     }

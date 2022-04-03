@@ -5,6 +5,7 @@ namespace BocaAPI.Interfaces
     public interface IBocaRepository
     {
         Task<List<PoliceCode>> GetPoliceCodes();
-        Task  UploadToDatabase(List<VCSExport> records);
+        Task <IEnumerable<RawExportData>>  UploadToDatabase(List<VCSExport> records);
+        Task<IEnumerable<RawExportData>> GetForOutput();
     }
 }
