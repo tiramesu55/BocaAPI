@@ -51,17 +51,15 @@ namespace BocaAPI.Services
 
                 var rtn = await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
                 result.AddRange(rtn.ToList());
-                //var finalResults = inserted.Select(r => (FinalResult)r).ToList();
-                //below is a separate call in a different controller
-                // File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
 
                 File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
             }
             return result;
         }
-        public async Task<List<FinalResult>> ExportLatest()
+        public async Task<List<FinalResult>> ExportLatest( string FileName = "VCSTime")
         {
             string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
+            var filename = $"{FileName}_{DateTime.Now.ToString("MMddyyyy")}.csv";
             var codes = await _cacheService.GetPoliceCodes();
             var fromDb = await _repository.GetForOutput();
             var orgList = (from pTime in fromDb join cRef in codes on pTime.WcpId equals cRef.Infinium_Codes
@@ -81,7 +79,7 @@ namespace BocaAPI.Services
          
             var combined = orgList.Concat(otcList).OrderBy( p => p.Date).ThenBy(p => p.EmployeeNumber).ToList();   // otc duplicated
 
-            File.WriteAllBytes(Path.Combine(OutputFolder, "result.csv"), CsvExtensions.SaveToCSV(combined));
+            File.WriteAllBytes(Path.Combine(OutputFolder, filename), CsvExtensions.SaveToCSV(combined));
             return combined;
         }
 

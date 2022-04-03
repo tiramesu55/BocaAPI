@@ -7,5 +7,7 @@ namespace BocaAPI.Interfaces
         Task<List<PoliceCode>> GetPoliceCodes();
         Task <IEnumerable<RawExportData>>  UploadToDatabase(List<VCSExport> records);
         Task<IEnumerable<RawExportData>> GetForOutput();
+        Task<List<Error>> GetErrors();
+        Task  DeleteErrors();
     }
 }
