@@ -18,7 +18,7 @@ namespace BocaAPI.Controllers
             _service = bService;
         }
 
-        [HttpGet("GetCodes")]
+        [HttpGet("GetCodes")]  // this method we use to test connection
         public async Task<ActionResult> GetCodes()
         {
             _test.LogInfo(1, "Test message");
@@ -34,7 +34,7 @@ namespace BocaAPI.Controllers
         [HttpGet("LoadFiles")]
         public async Task<ActionResult> LoadFiles()
         {
-            await _service.UploadInputFileToDatabase();
+            var result = await _service.UploadInputFileToDatabase();
             return Ok();
         }
         /// <summary>
@@ -44,17 +44,10 @@ namespace BocaAPI.Controllers
         [HttpGet("ExportFile")]
         public async Task<ActionResult> ExportFile()
         {
-            //var finalResults = inserted.Select(r => (FinalResult)r).ToList();
-            //below is a separate call in a different controller
-            // File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
 
-            // File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
-            List<FinalResult> x = new List<FinalResult>();
-            var recs = await _service.Repository.GetForOutput();
-            var finalResults = recs.OrderBy(p => p.id).Select(r => (FinalResult)r).ToList();
-            //todo make a method in Boca Service
-            // File.WriteAllBytes(Path.Combine(_settings.OutputFilePath, $"{fileName}_processed"), CsvExtensions.SaveToCSV(finalResults));
-            return Ok();
+            var recs = await _service.ExportLatest();
+
+            return Ok(recs);
         }
     }
 }
