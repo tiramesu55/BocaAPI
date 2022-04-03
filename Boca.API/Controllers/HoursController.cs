@@ -54,17 +54,19 @@ namespace BocaAPI.Controllers
         public async Task<ActionResult> LoadFiles()
         {
             var result = await _service.UploadInputFileToDatabase();
+            //export now. The latest data are in the NewlyInsertedtable
+            await _service.ExportLatest();
             return Ok();
         }
         /// <summary>
         /// this action returns OK if all records are loaded.  We can change to return the number of loaded records or the number of exceptions
         /// </summary>
         /// <returns></returns>
-        [HttpGet("ExportFile")]
-        public async Task<ActionResult> ExportFile()
+        [HttpGet("ExportFile/{Name?}")]
+        public async Task<ActionResult> ExportFile( string Name= "VCSTime")
         {
 
-            var recs = await _service.ExportLatest();
+            var recs = await _service.ExportLatest(Name);
 
             return Ok(recs);
         }

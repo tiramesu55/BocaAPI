@@ -7,8 +7,7 @@
         public DateTime ROSDate { get; set; }
         public decimal PayDuration { get; set; }
         public string Comment { get; set; }
-      //  public string HourType { get; set; }    
-      //  public string Oracle { get; set; }
+
 
     }
 }
