@@ -10,10 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers(opt =>
-{
-    opt.ReturnHttpNotAcceptable = true;
-});
+//builder.Services.AddControllers(opt =>
+//{
+//   // opt.ReturnHttpNotAcceptable = true;
+//});
+builder.Services.AddControllers();
 //I do not see a need to inject valildator. Also Validator requires argument, which makes it all too complicated
 //    .AddFluentValidation(opt =>
 //{
@@ -40,13 +41,13 @@ builder.Services.Configure<Settings>(builder.Configuration.GetSection("Folders")
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+//if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthorization();
 app.UseEndpoints(ep =>

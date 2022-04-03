@@ -18,14 +18,14 @@ namespace BocaAPI.Controllers
             _service = bService;
         }
 
-        [HttpGet("GetCodes")]
+        [HttpGet("GetCodes")]  // this method we use to test connection
         public async Task<ActionResult> GetCodes()
         {
             _test.LogInfo(1, "Test message");
 
-            var ololo = await _service.Cache.GetPoliceCodes();   
+            var codes = await _service.Cache.GetPoliceCodes();   
 
-            return Ok();
+            return Ok(codes);
         }
         /// <summary>
         /// this action returns OK if all records are loaded.  We can change to return the number of loaded records or the number of exceptions
@@ -34,8 +34,20 @@ namespace BocaAPI.Controllers
         [HttpGet("LoadFiles")]
         public async Task<ActionResult> LoadFiles()
         {
-            await _service.UploadInputFileToDatabase();
+            var result = await _service.UploadInputFileToDatabase();
             return Ok();
+        }
+        /// <summary>
+        /// this action returns OK if all records are loaded.  We can change to return the number of loaded records or the number of exceptions
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("ExportFile")]
+        public async Task<ActionResult> ExportFile()
+        {
+
+            var recs = await _service.ExportLatest();
+
+            return Ok(recs);
         }
     }
 }
