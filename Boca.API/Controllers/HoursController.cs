@@ -27,6 +27,25 @@ namespace BocaAPI.Controllers
 
             return Ok(codes);
         }
+        [HttpGet("GetErrors")]  // this method we use to test connection
+        public async Task<ActionResult> GetErrors()
+        {
+          
+            var err = await _service.Repository.GetErrors();
+
+            return Ok(err);
+        }
+        /// <summary>
+        /// delete errors
+        /// </summary>
+        /// <returns></returns>
+        [HttpDelete("DeleteErrors")]  // this method we use to test connection
+        public async Task<ActionResult> DeleteErrors()
+        {
+             await _service.Repository.DeleteErrors();
+            _test.LogInfo(1, "Delete all errors");
+            return Ok();
+        }
         /// <summary>
         /// this action returns OK if all records are loaded.  We can change to return the number of loaded records or the number of exceptions
         /// </summary>
