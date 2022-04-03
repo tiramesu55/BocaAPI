@@ -24,10 +24,11 @@ namespace BocaAPI.Services
 
         public async Task<List<RawExportData>> UploadInputFileToDatabase()
         {
-            var inputFolder = $@"{ _settings.BaseFilePath}\{_settings.InputFilePath}";
-            var outputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
-            var archiveFolder = $@"{ _settings.BaseFilePath}\{_settings.ArchiveFilePath}";
-            foreach (var file in Directory.GetFiles(inputFolder, "*.csv"))
+            List<RawExportData> result = new List<RawExportData>();
+            string InputFolder = $@"{ _settings.BaseFilePath}\{_settings.InputFilePath}";
+            string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
+            string ArchiveFolder = $@"{ _settings.BaseFilePath}\{_settings.ArchiveFilePath}";
+            foreach (var file in Directory.GetFiles(InputFolder, "*.csv"))
             {
                 var fileName = Path.GetFileName(file);
 
