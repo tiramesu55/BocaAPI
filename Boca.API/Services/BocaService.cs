@@ -38,15 +38,12 @@ namespace BocaAPI.Services
                 var infiniumCodes = policeCodes.Select(p => p.Infinium_Codes).ToList();
 
                 var validator = new PoliceMasterValidator(infiniumCodes);
-
+                
                 var readResults = File.OpenRead(file).ReadFromCsv<VCSExport>();
-                //readResults.Where(readResult => !readResult.IsValid)
-                //           .ToList()
-                //           .ForEach(readResult => _logger.LogInfo(readResult.RowNumber.Value, readResult.Errors));
+                //log those that cannot be cast to the VCSSxport class
+                readResults.Where(readResult => !readResult.IsValid).ToList()
+                         .ForEach(readResult =>  _logger.LogError(readResult.RowNumber.Value, readResult.Errors));
 
-                //var records = readResults.Where(record => record.IsValid)
-                //                         .Select(r => r.Record)
-                //                         .ToList();
                 var validatedRecords = readResults.Select((record, i) =>
                 {
                     var validationResult = validator.Validate(record.Record);
