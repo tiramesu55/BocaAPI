@@ -45,18 +45,22 @@ namespace BocaAPI.Extensions
                 }
                 catch(Exception e)
                 {
-                    records.Add(new CsvReadResult<T>()
+                    if (count > 0)
                     {
-                        RowNumber = count,
-                        IsValid = false,
-                        Errors = e.Message
-                    });
+
+                        records.Add(new CsvReadResult<T>()
+                        {
+                            RowNumber = count,
+                            IsValid = false,
+                            Errors = e.Message
+                        });
+                    }
                 }
 
                 count++;
             }
 
-            return records.Where(record => record.Record is not null).ToList();
+            return records.ToList();
         }
         
         public class CsvReadResult<T>

@@ -40,11 +40,13 @@ namespace BocaAPI.Services
                 var validator = new PoliceMasterValidator(infiniumCodes);
                 
                 var readResults = File.OpenRead(file).ReadFromCsv<VCSExport>();
+
                 //log those that cannot be cast to the VCSSxport class
                 readResults.Where(readResult => !readResult.IsValid).ToList()
                          .ForEach(readResult =>  _logger.LogError(readResult.RowNumber.Value, readResult.Errors));
 
-                var validatedRecords = readResults.Select((record, i) =>
+               //now run record that were converted through validator
+                var validatedRecords = readResults.Where(p => p.IsValid ).Select((record, i) =>
                 {
                     var validationResult = validator.Validate(record.Record);
                     return new
@@ -58,10 +60,11 @@ namespace BocaAPI.Services
                     };
                 }).ToList();
 
+                //get invalid records and log them
                 var invalidRecords = validatedRecords.Where(record => !record.IsValid).ToList();
-                
                 invalidRecords.ForEach(r => _logger.LogError(r.Number, r.Errors));
 
+                //load valid records
                 var rtn = await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
                 result.AddRange(rtn.ToList());
 
