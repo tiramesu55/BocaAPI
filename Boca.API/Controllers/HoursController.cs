@@ -21,7 +21,6 @@ namespace BocaAPI.Controllers
         [HttpGet("GetCodes")]  // this method we use to test connection
         public async Task<ActionResult> GetCodes()
         {
-            _test.LogInfo(1, "Test message");
 
             var codes = await _service.Cache.GetPoliceCodes();   
 

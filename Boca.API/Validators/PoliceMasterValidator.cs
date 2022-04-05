@@ -7,11 +7,11 @@
         public PoliceMasterValidator( List<string> acceptableCodes)
         {
             RuleFor(r => r.PAYID).NotNull();
-            RuleFor(r => r.WCPID).NotNull().MaximumLength(8).Must(r => acceptableCodes.Contains(r)); //make sure that ReasonCode can only have certain values
+            RuleFor(r => r.WCPID).NotEmpty().MaximumLength(8).Must(r => acceptableCodes.Contains(r)); //make sure that ReasonCode can only have certain values
 
             RuleFor(r => r.ReasonCode).MaximumLength(16);
             RuleFor(r => r.Reason).MaximumLength(128);
-            RuleFor(r => r.ROSDT).NotNull();
+            RuleFor(r => r.ROSDT).NotEmpty();
             RuleFor(r => r.STRDT).NotNull();
             RuleFor(r => r.ENDDT).NotNull();
             RuleFor(r => r.SHFTAB).NotNull();

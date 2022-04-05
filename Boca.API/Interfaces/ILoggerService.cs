@@ -4,5 +4,6 @@
     {
         void LogInfo(int rowNum, string message);
         void LogException(Exception ex);
+        void LogError(int rowNum, string message);
     }
 }

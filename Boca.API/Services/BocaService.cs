@@ -3,6 +3,7 @@ using BocaAPI.Interfaces;
 using BocaAPI.Models;
 using BocaAPI.Models.DTO;
 using BocaAPI.Validators;
+using FluentValidation;
 using Microsoft.Extensions.Options;
 
 namespace BocaAPI.Services
@@ -39,20 +40,20 @@ namespace BocaAPI.Services
                 var validator = new PoliceMasterValidator(infiniumCodes);
 
                 var readResults = File.OpenRead(file).ReadFromCsv<VCSExport>();
-                readResults.Where(readResult => !readResult.IsValid)
-                           .ToList()
-                           .ForEach(readResult => _logger.LogInfo(readResult.RowNumber.Value, readResult.Errors));
+                //readResults.Where(readResult => !readResult.IsValid)
+                //           .ToList()
+                //           .ForEach(readResult => _logger.LogInfo(readResult.RowNumber.Value, readResult.Errors));
 
-                var records = readResults.Where(record => record.IsValid)
-                                         .Select(r => r.Record)
-                                         .ToList();
-                var validatedRecords = records.Select((record, i) =>
+                //var records = readResults.Where(record => record.IsValid)
+                //                         .Select(r => r.Record)
+                //                         .ToList();
+                var validatedRecords = readResults.Select((record, i) =>
                 {
-                    var validationResult = validator.Validate(record);
+                    var validationResult = validator.Validate(record.Record);
                     return new
                     {
                         Number = i, 
-                        Record = record, 
+                        Record = record.Record, 
                         IsValid = validationResult.IsValid, 
                         Errors = validationResult.Errors
                                                  .Select(e => e.ErrorMessage)
@@ -61,9 +62,8 @@ namespace BocaAPI.Services
                 }).ToList();
 
                 var invalidRecords = validatedRecords.Where(record => !record.IsValid).ToList();
-                validatedRecords.Where(record => !record.IsValid)
-                                .ToList()
-                                .ForEach(r => _logger.LogInfo(r.Number, r.Errors));
+                
+                invalidRecords.ForEach(r => _logger.LogError(r.Number, r.Errors));
 
                 var rtn = await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
                 result.AddRange(rtn.ToList());
