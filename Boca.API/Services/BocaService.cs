@@ -1,9 +1,10 @@
-﻿using BocaAPI.Extensions;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
+using BocaAPI.Extensions;
 using BocaAPI.Interfaces;
 using BocaAPI.Models;
 using BocaAPI.Models.DTO;
 using BocaAPI.Validators;
-using FluentValidation;
 using Microsoft.Extensions.Options;
 
 namespace BocaAPI.Services
@@ -31,7 +32,7 @@ namespace BocaAPI.Services
             string ArchiveFolder = $@"{ _settings.BaseFilePath}\{_settings.ArchiveFilePath}";
             foreach (var file in Directory.GetFiles(InputFolder, "*.csv"))
             {
-                var fileName = Path.GetFileName(file);
+                var fileName = Regex.Replace($@"{Path.GetFileNameWithoutExtension(file)}-{DateTime.UtcNow}{Path.GetExtension(file)}", $"[{new string(Path.GetInvalidFileNameChars())}]","-").Replace(' ', '_');
 
                 var policeCodes = await _cacheService.GetPoliceCodes();
 
@@ -42,7 +43,7 @@ namespace BocaAPI.Services
                 var readResults = File.OpenRead(file).ReadFromCsv<VCSExport>();
 
                 //log those that cannot be cast to the VCSSxport class
-                readResults.Where(readResult => !readResult.IsValid).ToList()
+                readResults.Where(readResult => !readResult.IsValid || readResult.Record is null).ToList()
                          .ForEach(readResult =>  _logger.LogError(readResult.RowNumber.Value, readResult.Errors));
 
                //now run record that were converted through validator
