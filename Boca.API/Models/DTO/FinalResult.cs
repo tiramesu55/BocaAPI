@@ -1,4 +1,7 @@
-﻿namespace BocaAPI.Models.DTO
+﻿using CsvHelper.Configuration.Attributes;
+
+
+namespace BocaAPI.Models.DTO
 {
     public class FinalResult
     {
@@ -10,6 +13,8 @@
 		public string PayrollTimeType{ get; set; }
 		public string Comments{ get; set; }
 		public string OperationType{ get; set; }
+		
+		[Ignore]
 		public bool duplicate { get; set; }
 
 		public FinalResult() 

@@ -32,7 +32,7 @@ namespace BocaAPI.Extensions
             var csvReader = new CsvReader(stream, CultureInfo.InvariantCulture);
             var records = new List<CsvReadResult<T>>();
 
-            var count = 0;
+            var count = 1;
             while(csvReader.Read())
             {
                 try
@@ -45,9 +45,8 @@ namespace BocaAPI.Extensions
                 }
                 catch(Exception e)
                 {
-                    if (count > 0)
+                    if(count > 0)
                     {
-
                         records.Add(new CsvReadResult<T>()
                         {
                             RowNumber = count,
