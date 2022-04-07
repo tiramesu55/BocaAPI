@@ -1,6 +1,11 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
+using System.Net;
+using BocaAPI.Interfaces;
+using BocaAPI.Models.DTO;
+using BocaAPI.Validators;
+
 
 namespace BocaAPI.Extensions
 {
@@ -20,14 +25,49 @@ namespace BocaAPI.Extensions
             streamWriter.Flush();
             return memoryStream.ToArray();
         }
-
-
-        public static List<T> ReadFromCsv<T>(this Stream input)
+        
+        public static List<CsvReadResult<T>> ReadFromCsv<T>(this Stream input)
         {
             using var stream = new StreamReader(input);
-            return new CsvReader(stream, CultureInfo.InvariantCulture).GetRecords<T>().ToList();
+            var csvReader = new CsvReader(stream, CultureInfo.InvariantCulture);
+            var records = new List<CsvReadResult<T>>();
+
+            var count = 1;
+            while(csvReader.Read())
+            {
+                try
+                {
+                    records.Add(new CsvReadResult<T>()
+                    {
+                        Record = csvReader.GetRecord<T>(),
+                        IsValid = true
+                    });
+                }
+                catch(Exception e)
+                {
+                    if(count > 0)
+                    {
+                        records.Add(new CsvReadResult<T>()
+                        {
+                            RowNumber = count,
+                            IsValid = false,
+                            Errors = e.Message
+                        });
+                    }
+                }
+
+                count++;
+            }
+
+            return records.ToList();
         }
-
-
+        
+        public class CsvReadResult<T>
+        {
+            public int? RowNumber { get; set; }
+            public T? Record { get; set; }
+            public bool IsValid { get; set; }
+            public string? Errors { get; set; }
+        }
     }
 }

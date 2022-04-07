@@ -17,7 +17,12 @@ namespace BocaAPI.Services
 
             Log.CloseAndFlush();
         }
+        public void LogError(int rowNum, string message)
+        {
+            Log.ForContext("RowNum", rowNum).Error("{Message}", message);
 
+            Log.CloseAndFlush();
+        }
         public void LogException(Exception ex)
         {
             Log.Error(ex.ToString());

@@ -1,9 +1,14 @@
-﻿namespace BocaAPI.Interfaces
+﻿using BocaAPI.Models.DTO;
+
+namespace BocaAPI.Interfaces
 {
     public interface IBocaService
     {
-        Task UploadInputFileToDatabase();
+        Task<List<RawExportData>> UploadInputFileToDatabase();
+        Task<List<FinalResult>> ExportLatest(string FileName = "VCSTime");
         ICacheService Cache { get; }
         IBocaRepository Repository { get; }
+
+        //3. Post for returning all ids in date range (startDt - endDt)
     }
 }
