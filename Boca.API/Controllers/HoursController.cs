@@ -52,9 +52,9 @@ namespace BocaAPI.Controllers
         [HttpGet("LoadFiles")]
         public async Task<ActionResult> LoadFiles()
         {
-            var result = await _service.UploadInputFileToDatabase();
+            await _service.UploadInputFileToDatabase();
             //export now. The latest data are in the NewlyInsertedtable
-            await _service.ExportLatest();
+           // await _service.ExportLatest();
             return Ok();
         }
         /// <summary>

@@ -4,7 +4,7 @@ namespace BocaAPI.Interfaces
 {
     public interface IBocaService
     {
-        Task<List<RawExportData>> UploadInputFileToDatabase();
+        Task UploadInputFileToDatabase();
         Task<List<FinalResult>> ExportLatest(string FileName = "VCSTime");
         ICacheService Cache { get; }
         IBocaRepository Repository { get; }
