@@ -20,6 +20,19 @@ namespace BocaAPI.Repository
 
         public async Task<List<Error>> GetErrors() => (await db.QueryAsync<Error>("SELECT Message,TimeStamp, Exception, RowNum FROM ErrorLogs")).ToList();
 
+        public void LogError(Error er)
+        {
+            try
+            {
+                var x = db.Execute(@"insert into ErrorLogs (Message, TimeStamp, Exception, RowNum) 
+                values (@Message, @TimeStamp, @Exception, @RowNum )", er);
+            }
+            catch(Exception ex)
+            {
+
+            }
+            
+        } 
         public async Task DeleteErrors() => await db.ExecuteAsync("truncate table ErrorLogs; ");
 
         public async Task<IEnumerable<RawExportData>> UploadToDatabase(List<VCSExport> records)
@@ -55,6 +68,7 @@ namespace BocaAPI.Repository
                        AND t.[strdate] = s.[STRDate]
                        AND t.[enddate] = s.[ENDDate]
                        AND t.[shftab] = s.[SHFTAB]
+       -- AND t.payid = 0
                     WHEN NOT MATCHED THEN 
                         INSERT ([payid],[wcpid],[Wcabr],[reasoncode],[reason],[rosdate],[strdate],[enddate],[shftab],[removed],[rectype],[payduration],[comment])
                         VALUES ( s.[payid],

@@ -44,7 +44,8 @@ namespace BocaAPI.Services
 
                 //log those that cannot be cast to the VCSSxport class
                 readResults.Where(readResult => !readResult.IsValid || readResult.Record is null).ToList()
-                         .ForEach(readResult =>  _logger.LogError(readResult.RowNumber.Value, readResult.Errors));
+                         .ForEach(readResult =>  _repository.LogError( 
+                             new Error { RowNum = readResult.RowNumber.Value, Message = readResult.Errors, TimeStamp = DateTime.Now }));
 
                //now run record that were converted through validator
                 var validatedRecords = readResults.Where(p => p.IsValid ).Select((record, i) =>
@@ -63,10 +64,12 @@ namespace BocaAPI.Services
 
                 //get invalid records and log them
                 var invalidRecords = validatedRecords.Where(record => !record.IsValid).ToList();
-                invalidRecords.ForEach(r => _logger.LogError(r.Number, r.Errors));
+                invalidRecords.ForEach(r => _repository.LogError(
+                             new Error { RowNum = r.Number, Message = r.Errors, TimeStamp = DateTime.Now }));
 
                 //load valid records
-                var rtn = await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
+                var validRecords = validatedRecords.Where(r => r.IsValid).ToList();
+                var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList());
                // result.AddRange(rtn.ToList());
                 await ExportLatest();
                 File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite

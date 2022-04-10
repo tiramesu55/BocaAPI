@@ -9,5 +9,6 @@ namespace BocaAPI.Interfaces
         Task<IEnumerable<RawExportData>> GetForOutput();
         Task<List<Error>> GetErrors();
         Task  DeleteErrors();
+        void LogError(Error er);
     }
 }

@@ -19,15 +19,15 @@ namespace BocaAPI.Services
         }
         public void LogError(int rowNum, string message)
         {
-            Log.ForContext("RowNum", rowNum).Error("{Message}", message);
+            //Log.ForContext("RowNum", rowNum).Error("{Message}", message);
 
-            Log.CloseAndFlush();
+          //  Log.CloseAndFlush();
         }
         public void LogException(Exception ex)
         {
-            Log.Error(ex.ToString());
+          //  Log.Error(ex.ToString());
 
-            Log.CloseAndFlush();
+         //   Log.CloseAndFlush();
         }
     }
 }
