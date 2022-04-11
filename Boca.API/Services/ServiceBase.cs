@@ -4,13 +4,12 @@ namespace BocaAPI.Services
 {
     public abstract class ServiceBase
     {
-        protected readonly ILoggerService _logger;
+        protected readonly ILogger<ServiceBase> _logger;
 
-        public ServiceBase(ILoggerService logger)
+        public ServiceBase(ILogger<ServiceBase> logger)
         {
             _logger = logger;
         }
-
 
         protected virtual async Task ExecuteOperationAsync(Func<Task> func)
         {
@@ -20,7 +19,7 @@ namespace BocaAPI.Services
             }
             catch (Exception ex)
             {
-                _logger.LogException(ex);
+                _logger.LogError(ex.Message);
             }
         }
 
@@ -32,7 +31,7 @@ namespace BocaAPI.Services
             }
             catch (Exception ex)
             {
-                _logger.LogException(ex);
+                _logger.LogError(ex.Message);
                 return null;
             }
         }

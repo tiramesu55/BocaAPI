@@ -15,7 +15,7 @@ namespace BocaAPI.Services
         private readonly IBocaRepository _repository;
         private readonly Settings _settings;
 
-        public BocaService(ICacheService cacheService, IBocaRepository repository, ILoggerService logger, IOptions<Settings> options) : base(logger)
+        public BocaService(ICacheService cacheService, IBocaRepository repository, ILogger<BocaService> logger, IOptions<Settings> options) : base(logger)
         {
             _cacheService = cacheService;
             _repository = repository;

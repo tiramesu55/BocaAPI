@@ -8,13 +8,12 @@ namespace BocaAPI.Controllers
     [ApiController]
     public class HoursController : ControllerBase
     {
-        private ILoggerService _test;
         private IBocaService _service;
 
 
-        public HoursController(ILoggerService test, IBocaService bService)
+        public HoursController(IBocaService bService)
         {
-            _test = test;
+
             _service = bService;
         }
 
@@ -42,7 +41,7 @@ namespace BocaAPI.Controllers
         public async Task<ActionResult> DeleteErrors()
         {
              await _service.Repository.DeleteErrors();
-            _test.LogInfo(1, "Delete all errors");
+
             return Ok();
         }
         /// <summary>

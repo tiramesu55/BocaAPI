@@ -2,26 +2,37 @@ using BocaAPI.Interfaces;
 using BocaAPI.Models;
 using BocaAPI.Repository;
 using BocaAPI.Services;
+using Microsoft.Extensions.Logging.EventLog;
 using FluentValidation.AspNetCore;
-using Serilog;
 using System.Reflection;
+//create options so the service can run from non windows32 folder
+WebApplicationOptions options = new()
+{
+    ContentRootPath = AppContext.BaseDirectory,
+    Args = args
+};
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(options);
 
-// Add services to the container.
+builder.Host.ConfigureServices(services =>
+{
+    //services.AddHostedService<Worker>();
 
-//builder.Services.AddControllers(opt =>
-//{
-//   // opt.ReturnHttpNotAcceptable = true;
-//});
+    if (OperatingSystem.IsWindows())
+    {
+        services.Configure<EventLogSettings>(config =>
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                config.LogName = "Boce Service";
+                config.SourceName = "Boca Service Source";
+            }
+        });
+    }
+});
+builder.Host.UseWindowsService();
+
 builder.Services.AddControllers();
-//I do not see a need to inject valildator. Also Validator requires argument, which makes it all too complicated
-//    .AddFluentValidation(opt =>
-//{
-//    opt.ImplicitlyValidateChildProperties = true;
-//    opt.ImplicitlyValidateRootCollectionElements = true;
-//    opt.RegisterValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-//});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -31,25 +42,23 @@ builder.Services.AddMemoryCache();
 builder.Services.AddOptions<Settings>("Folders");
 
 
-builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
-
 builder.Services.AddScoped<IBocaRepository>(s => new BocaRepository(builder.Configuration["ConnectionStrings:BocaDBConnectionString"]));
-builder.Services.AddScoped<ILoggerService, LoggerService>();
+
 builder.Services.AddScoped<ICacheService, CacheService>();
-builder.Services.AddScoped<IBocaService, BocaService>();  //TODO why not Singleton?
+builder.Services.AddScoped<IBocaService, BocaService>();
 builder.Services.Configure<Settings>(builder.Configuration.GetSection("Folders"));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+//{
+app.UseSwagger();
+app.UseSwaggerUI();
+//}
 
 //app.UseHttpsRedirection();
 app.UseRouting();
-app.UseAuthorization();
+//app.UseAuthorization();
 app.UseEndpoints(ep =>
 {
     ep.MapControllers();
