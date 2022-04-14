@@ -5,6 +5,7 @@ using BocaAPI.Services;
 using Microsoft.Extensions.Logging.EventLog;
 using FluentValidation.AspNetCore;
 using System.Reflection;
+using BocaAPI;
 //create options so the service can run from non windows32 folder
 WebApplicationOptions options = new()
 {
@@ -14,22 +15,6 @@ WebApplicationOptions options = new()
 
 var builder = WebApplication.CreateBuilder(options);
 
-builder.Host.ConfigureServices(services =>
-{
-    //services.AddHostedService<Worker>();
-
-    if (OperatingSystem.IsWindows())
-    {
-        services.Configure<EventLogSettings>(config =>
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                config.LogName = "Boce Service";
-                config.SourceName = "Boca Service Source";
-            }
-        });
-    }
-});
 builder.Host.UseWindowsService();
 
 builder.Services.AddControllers();
@@ -37,16 +22,25 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddMemoryCache();
+builder.Services.Configure<EventLogSettings>(conf =>
+{
+    conf.LogName = string.Empty;
+    conf.SourceName = "_BocaService";
+});
 
 builder.Services.AddOptions<Settings>("Folders");
 
 
-builder.Services.AddScoped<IBocaRepository>(s => new BocaRepository(builder.Configuration["ConnectionStrings:BocaDBConnectionString"]));
+builder.Services.AddSingleton<IBocaRepository>(s => new BocaRepository(builder.Configuration["ConnectionStrings:BocaDBConnectionString"]));
 
-builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IBocaService, BocaService>();
 builder.Services.Configure<Settings>(builder.Configuration.GetSection("Folders"));
+
+builder.Host.ConfigureServices(services =>
+{
+    services.AddHostedService<Worker>();
+
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

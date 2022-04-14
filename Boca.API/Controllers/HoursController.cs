@@ -21,7 +21,7 @@ namespace BocaAPI.Controllers
         public async Task<ActionResult> GetCodes()
         {
 
-            var codes = await _service.Cache.GetPoliceCodes();   
+            var codes = await _service.Repository.GetPoliceCodes();   
 
             return Ok(codes);
         }
