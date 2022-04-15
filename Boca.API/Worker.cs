@@ -34,6 +34,7 @@ namespace BocaAPI
                  await service.UploadInputFileToDatabase();
                  await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
             }
+            _logger.LogCritical("_Boca Service Worker Stoppes Unexpectingly.  Please restart service");
         }
     }
 }
