@@ -16,6 +16,15 @@ namespace BocaAPI.Controllers
 
             _service = bService;
         }
+        [HttpPost("SendEmail")]  // this method we use to test connection
+        public async Task<ActionResult> SendEmail(ControllerEmail payload )
+        {
+            var sender = _service.Email;
+
+            await sender.Send( payload.Body, payload.Subject);
+
+            return Ok();
+        }
 
         [HttpGet("GetCodes")]  // this method we use to test connection
         public async Task<ActionResult> GetCodes()

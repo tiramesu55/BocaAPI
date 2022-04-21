@@ -7,6 +7,7 @@ namespace BocaAPI.Interfaces
         Task UploadInputFileToDatabase();
         Task<List<FinalResult>> ExportLatest(string FileName = "VCSTime");
         IBocaRepository Repository { get; }
+        IEmail Email { get; }
 
         //3. Post for returning all ids in date range (startDt - endDt)
     }

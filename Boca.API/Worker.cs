@@ -13,11 +13,15 @@ namespace BocaAPI
         private readonly IConfiguration _cfg;
 
         private readonly IOptions<Settings> _settings;
-        public Worker(ILogger<BocaService> logger, IHostEnvironment environment, IConfiguration config, IOptions<Settings> options)
+
+        private readonly IOptions<EmailConfig> _emailConfig;
+
+        public Worker(ILogger<BocaService> logger, IHostEnvironment environment, IConfiguration config, IOptions<Settings> options, IOptions<EmailConfig> emc)
         {
             _logger = logger;
             _cfg = config;
             _settings = options;
+            _emailConfig= emc;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -25,8 +29,8 @@ namespace BocaAPI
             var connStr = _cfg.GetValue<string>("ConnectionStrings:BocaDBConnectionString");
             if (connStr == null) return;
             var repo = new BocaRepository(connStr);
-
-            var service = new BocaService(repo, _logger, _settings);
+            var email = new Email(_logger, _emailConfig);
+            var service = new BocaService(repo, _logger, _settings,email);
            
             while (!stoppingToken.IsCancellationRequested)
             {

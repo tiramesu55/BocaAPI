@@ -14,15 +14,17 @@ namespace BocaAPI.Services
 
         private readonly IBocaRepository _repository;
         private readonly Settings _settings;
+        private readonly IEmail _email;
 
-        public BocaService( IBocaRepository repository, ILogger<BocaService> logger, IOptions<Settings> options) : base(logger)
+        public BocaService( IBocaRepository repository, ILogger<BocaService> logger, IOptions<Settings> options, IEmail email) : base(logger)
         {
-  
+            _email = email;
             _repository = repository;
             _settings = options.Value;
         }
         public IBocaRepository Repository{get { return _repository; }}
 
+        public IEmail Email{get { return _email;} }
 
         public async Task UploadInputFileToDatabase()
         {
@@ -78,7 +80,7 @@ namespace BocaAPI.Services
                 var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList());
                 if (rtn?.Count() > 0)
                     await ExportLatest();
-
+                await Email.Send("File Upload success", "file is loaded");
                 File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
 
                 return;
