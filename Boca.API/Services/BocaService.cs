@@ -39,7 +39,7 @@ namespace BocaAPI.Services
                 //check if there is a file to work with
                 if (file == null)
                     return;
-
+                var fnForRecord = Path.GetFileNameWithoutExtension(file);
                 var fileName = Regex.Replace($@"{Path.GetFileNameWithoutExtension(file)}-{DateTime.UtcNow}{Path.GetExtension(file)}", $"[{new string(Path.GetInvalidFileNameChars())}]", "-").Replace(' ', '_');
 
                 var policeCodes = await _repository.GetPoliceCodes(); // _cacheService.GetPoliceCodes();
@@ -77,10 +77,10 @@ namespace BocaAPI.Services
 
                 //load valid records
                 var validRecords = validatedRecords.Where(r => r.IsValid).ToList();
-                var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList());
+                var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList(), fnForRecord);
                 if (rtn?.Count() > 0)
                     await ExportLatest();
-                await Email.Send("File Upload success", "file is loaded");
+                await Email.Send($"File {fnForRecord} is successfully uploaded yielding {rtn?.Count()} new records", "Police File Loaded");
                 File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
 
                 return;
