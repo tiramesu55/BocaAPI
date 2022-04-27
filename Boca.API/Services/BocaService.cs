@@ -11,74 +11,90 @@ namespace BocaAPI.Services
 {
     public class BocaService : ServiceBase, IBocaService
     {
-        private readonly ICacheService _cacheService;
+
         private readonly IBocaRepository _repository;
         private readonly Settings _settings;
+        private readonly IEmail _email;
 
-        public BocaService(ICacheService cacheService, IBocaRepository repository, ILoggerService logger, IOptions<Settings> options) : base(logger)
+        public BocaService( IBocaRepository repository, ILogger<BocaService> logger, IOptions<Settings> options, IEmail email) : base(logger)
         {
-            _cacheService = cacheService;
+            _email = email;
             _repository = repository;
             _settings = options.Value;
         }
         public IBocaRepository Repository{get { return _repository; }}
-        public ICacheService Cache { get { return _cacheService; } }
 
-        public async Task<List<RawExportData>> UploadInputFileToDatabase()
+        public IEmail Email{get { return _email;} }
+
+        public async Task UploadInputFileToDatabase()
         {
-            List<RawExportData> result = new List<RawExportData>();
-            string InputFolder = $@"{ _settings.BaseFilePath}\{_settings.InputFilePath}";
-            string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
-            string ArchiveFolder = $@"{ _settings.BaseFilePath}\{_settings.ArchiveFilePath}";
-            foreach (var file in Directory.GetFiles(InputFolder, "*.csv"))
+            try
             {
-                var fileName = Regex.Replace($@"{Path.GetFileNameWithoutExtension(file)}-{DateTime.UtcNow}{Path.GetExtension(file)}", $"[{new string(Path.GetInvalidFileNameChars())}]","-").Replace(' ', '_');
+                //  List<RawExportData> result = new List<RawExportData>();
+                string InputFolder = $@"{ _settings.BaseFilePath}\{_settings.InputFilePath}";
+                string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
+                string ArchiveFolder = $@"{ _settings.BaseFilePath}\{_settings.ArchiveFilePath}";
+                var file = Directory.GetFiles(InputFolder, "*.csv").FirstOrDefault();
 
-                var policeCodes = await _cacheService.GetPoliceCodes();
+                //check if there is a file to work with
+                if (file == null)
+                    return;
+                var fnForRecord = Path.GetFileNameWithoutExtension(file);
+                var fileName = Regex.Replace($@"{Path.GetFileNameWithoutExtension(file)}-{DateTime.UtcNow}{Path.GetExtension(file)}", $"[{new string(Path.GetInvalidFileNameChars())}]", "-").Replace(' ', '_');
+
+                var policeCodes = await _repository.GetPoliceCodes(); // _cacheService.GetPoliceCodes();
 
                 var infiniumCodes = policeCodes.Select(p => p.Infinium_Codes).ToList();
 
                 var validator = new PoliceMasterValidator(infiniumCodes);
-                
+
                 var readResults = File.OpenRead(file).ReadFromCsv<VCSExport>();
 
                 //log those that cannot be cast to the VCSSxport class
                 readResults.Where(readResult => !readResult.IsValid || readResult.Record is null).ToList()
-                         .ForEach(readResult =>  _logger.LogError(readResult.RowNumber.Value, readResult.Errors));
+                         .ForEach(readResult => _repository.LogError(
+                             new Error { RowNum = readResult.RowNumber.Value, Message = readResult.Errors, TimeStamp = DateTime.Now }));
 
-               //now run record that were converted through validator
-                var validatedRecords = readResults.Where(p => p.IsValid ).Select((record, i) =>
+                //now run record that were converted through validator
+                var validatedRecords = readResults.Where(p => p.IsValid).Select((record, i) =>
                 {
                     var validationResult = validator.Validate(record.Record);
                     return new
                     {
-                        Number = i, 
-                        Record = record.Record, 
-                        IsValid = validationResult.IsValid, 
+                        Number = i,
+                        Record = record.Record,
+                        IsValid = validationResult.IsValid,
                         Errors = validationResult.Errors
-                                                 .Select(e => e.ErrorMessage)
-                                                 .StringJoin()
+                                             .Select(e => e.ErrorMessage)
+                                             .StringJoin()
                     };
                 }).ToList();
 
                 //get invalid records and log them
                 var invalidRecords = validatedRecords.Where(record => !record.IsValid).ToList();
-                invalidRecords.ForEach(r => _logger.LogError(r.Number, r.Errors));
+                invalidRecords.ForEach(r => _repository.LogError(
+                             new Error { RowNum = r.Number, Message = r.Errors, TimeStamp = DateTime.Now }));
 
                 //load valid records
-                var rtn = await _repository.UploadToDatabase(validatedRecords.Where(r => r.IsValid).Select(r => r.Record).ToList());
-                result.AddRange(rtn.ToList());
-
-
+                var validRecords = validatedRecords.Where(r => r.IsValid).ToList();
+                var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList(), fnForRecord);
+                if (rtn?.Count() > 0)
+                    await ExportLatest();
+                await Email.Send($"File {fnForRecord} is successfully uploaded yielding {rtn?.Count()} new records", "Police File Loaded");
                 File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
+
+                return;
             }
-            return result;
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex.Message, ex);
+            }
         }
         public async Task<List<FinalResult>> ExportLatest( string FileName = "VCSTime")
         {
             string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
-            var filename = $"{FileName}_{DateTime.Now.ToString("MMddyyyy")}.csv";
-            var codes = await _cacheService.GetPoliceCodes();
+            var filename = $"{FileName}_{DateTime.Now.ToString("MMddyyyy_HHmm")}.csv";
+            var codes = await _repository.GetPoliceCodes();
             var fromDb = await _repository.GetForOutput();
             var orgList = (from pTime in fromDb join cRef in codes on pTime.WcpId equals cRef.Infinium_Codes
                           select new FinalResult(pTime, cRef)).ToList();
@@ -92,7 +108,7 @@ namespace BocaAPI.Services
                 PayrollTimeType = "STRAIGHT OT POLICE",
                 Comments = p.Comments,
                 OperationType = p.OperationType,
-                duplicate = p.duplicate,
+               // duplicate = p.duplicate,
             });
          
             var combined = orgList.Concat(otcList).OrderBy( p => p.Date).ThenBy(p => p.EmployeeNumber).ToList();   // otc duplicated
