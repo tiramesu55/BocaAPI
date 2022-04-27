@@ -17,6 +17,9 @@ namespace BocaAPI.Services
         public async Task  Send(   string content, string subject)
         {
             string host = _settings.SmtpServer;
+            //do not email if smtp not set
+            if (string.IsNullOrEmpty(host))
+                return;
             string fromAddr = _settings.From;
             int port = _settings.Port;
             string To = _settings.To;
