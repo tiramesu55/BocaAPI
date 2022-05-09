@@ -38,13 +38,14 @@ namespace BocaAPI.Repository
         public async Task<IEnumerable<RawExportData>> UploadToDatabase(List<VCSExport> records, string fn)
         {
             await db.ExecuteAsync("truncate table NewlyInserted; ");
-
+            var InsertId = Guid.NewGuid().ToString();
             foreach (var rec in records)
             {
                 //build bag
                 var param = new DynamicParameters(rec);
                 //add file name to bag
                 param.Add("fn", fn, DbType.String, ParameterDirection.Input, fn.Length);
+                param.Add("InsertId", InsertId, DbType.String, ParameterDirection.Input, InsertId.Length);
                 await db.ExecuteAsync(
                 @"
                 MERGE INTO police_master t 
@@ -62,9 +63,10 @@ namespace BocaAPI.Repository
                           @RECTYP,
                           @PAYDURAT,
                           @Comment,
-                          @fn  ) ) s([PayId], [WcpId],[WCABR], [ReasonCode], [Reason], [ROSDate],
+                          @fn,
+                          @InsertId  ) ) s([PayId], [WcpId],[WCABR], [ReasonCode], [Reason], [ROSDate],
                           [STRDate], [ENDDate], [SHFTAB], [Removed], [RecType], [PayDuration],
-                          [Comment], [FileName])
+                          [Comment], [FileName], [InsertId])
                     ON t.payid = s.payid
                        AND s.[WcpId] = t.[wcpid]
                        AND t.[Wcabr] = s.[Wcabr]
@@ -74,7 +76,7 @@ namespace BocaAPI.Repository
                        AND t.[shftab] = s.[SHFTAB]
        -- AND t.payid = 0
                     WHEN NOT MATCHED THEN 
-                        INSERT ([payid],[wcpid],[Wcabr],[reasoncode],[reason],[rosdate],[strdate],[enddate],[shftab],[removed],[rectype],[payduration],[comment], [FileName])
+                        INSERT ([payid],[wcpid],[Wcabr],[reasoncode],[reason],[rosdate],[strdate],[enddate],[shftab],[removed],[rectype],[payduration],[comment], [FileName],[InsertId])
                         VALUES ( s.[payid],
                                s.[wcpid],
                                s.[Wcabr],
@@ -88,13 +90,14 @@ namespace BocaAPI.Repository
                                s.[rectype],
                                s.[payduration],
                                s.[comment],
-                               s.[FileName] ) 
-                               OUTPUT inserted.payid, inserted.wcpid,inserted.rosdate, inserted.payduration, inserted.comment INTO NewlyInserted ;
-                    ", param
+                               s.[FileName],
+                               s.[InsertId] ) 
+                                   ;", param
                         );
             }
-            var rtn = await db.QueryAsync<RawExportData>(" select * from NewlyInserted"); // --If we decide to use temp table we need to change NewlyInserted to #NewlyInserted everywhere
-            return rtn;
+           var rtn = await db.QueryAsync<RawExportData>(" select payid, wcpid,rosdate, payduration, comment from police_master where InsertId=@InsertId", 
+                        new { InsertId = InsertId }); 
+           return rtn;
 
         }
 

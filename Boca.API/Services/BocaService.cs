@@ -80,7 +80,9 @@ namespace BocaAPI.Services
                 var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList(), fnForRecord);
                 if (rtn?.Count() > 0)
                     await ExportLatest();
-                await Email.Send($"File {fnForRecord} is successfully uploaded yielding {rtn?.Count()} new records", "Police File Loaded");
+                var body = CreateBody(readResults.Count(), invalidRecords.Count(), validRecords.Count(), rtn?.Count());
+                var header = CreateHeader(invalidRecords.Count() != 0, fnForRecord);
+                await Email.Send(body, header);
                 File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
 
                 return;
@@ -88,6 +90,24 @@ namespace BocaAPI.Services
             catch (Exception ex)
             {
                 _logger.LogCritical(ex.Message, ex);
+            }
+        }
+        //Format email body
+        private string CreateBody(int totalRecords, int errorRecords, int validRecords, int? addedRecords)
+        {
+            var res = $"Total Records: {totalRecords} \nNumber of error records: {errorRecords}\nRecords attempted to add: {validRecords}\nAdded Records: {addedRecords}";
+            return res;
+        }
+
+        private string CreateHeader( bool hasErrors, string fileName)
+        {
+            if(hasErrors)
+            {
+                return $"File {fileName} has been loaded with errors";
+            }
+            else
+            {
+                return $"File {fileName} has been loaded successfully";
             }
         }
         public async Task<List<FinalResult>> ExportLatest( string FileName = "VCSTime")

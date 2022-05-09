@@ -7,7 +7,7 @@ namespace BocaAPI.Services
 {
     public class Email:ServiceBase, IEmail
     {
-        ILogger<BocaService> _logger;
+        
         private readonly EmailConfig _settings;
         public Email(ILogger<BocaService> logger, IOptions<EmailConfig> options):base(logger)
         {
@@ -23,9 +23,11 @@ namespace BocaAPI.Services
             string fromAddr = _settings.From;
             int port = _settings.Port;
             string To = _settings.To;
+            
             MailMessage mailMessage = new MailMessage();
+            //see if to contains commas and parse accordingly
+            To.Split(',').ToList().ForEach(x => mailMessage.To.Add(x.Trim()));
 
-            mailMessage.To.Add(To);
             mailMessage.From =new MailAddress( fromAddr);
             mailMessage.Subject = subject;
             mailMessage.Body = content;
@@ -40,7 +42,15 @@ namespace BocaAPI.Services
             }
             catch (Exception ex)
             {
-
+                if(ex.InnerException != null)
+                {
+                    _logger.LogCritical(ex.InnerException.Message, ex.InnerException);
+                }
+                    else
+                        {
+                            _logger.LogCritical(ex.Message, ex);
+                        }
+               
             }
            
 
