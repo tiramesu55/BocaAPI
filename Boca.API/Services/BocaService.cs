@@ -77,9 +77,11 @@ namespace BocaAPI.Services
 
                 //load valid records
                 var validRecords = validatedRecords.Where(r => r.IsValid).ToList();
-                var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList(), fnForRecord);
+                //create a cookie
+                var InsertId = Guid.NewGuid().ToString();
+                var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList(), fnForRecord, InsertId);
                 if (rtn?.Count() > 0)
-                    await ExportLatest();
+                    await ExportLatest(InsertId);
                 var body = CreateBody(readResults.Count(), invalidRecords.Count(), validRecords.Count(), rtn?.Count());
                 var header = CreateHeader(invalidRecords.Count() != 0, fnForRecord);
                 await Email.Send(body, header);
@@ -110,12 +112,12 @@ namespace BocaAPI.Services
                 return $"File {fileName} has been loaded successfully";
             }
         }
-        public async Task<List<FinalResult>> ExportLatest( string FileName = "VCSTime")
+        public async Task<List<FinalResult>> ExportLatest( string InsertId, string FileName = "VCSTime")
         {
             string OutputFolder = $@"{ _settings.BaseFilePath}\{_settings.OutputFilePath}";
             var filename = $"{FileName}_{DateTime.Now.ToString("MMddyyyy_HHmm")}.csv";
             var codes = await _repository.GetPoliceCodes();
-            var fromDb = await _repository.GetForOutput();
+            var fromDb = await _repository.GetForOutput( InsertId );
             var orgList = (from pTime in fromDb join cRef in codes on pTime.WcpId equals cRef.Infinium_Codes
                           select new FinalResult(pTime, cRef)).ToList();
             var otcList = orgList.Where(p => p.duplicate).Select(p => new FinalResult

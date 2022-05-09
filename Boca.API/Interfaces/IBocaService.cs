@@ -5,7 +5,7 @@ namespace BocaAPI.Interfaces
     public interface IBocaService
     {
         Task UploadInputFileToDatabase();
-        Task<List<FinalResult>> ExportLatest(string FileName = "VCSTime");
+        Task<List<FinalResult>> ExportLatest(string InsertId, string FileName = "VCSTime");
         IBocaRepository Repository { get; }
         IEmail Email { get; }
 

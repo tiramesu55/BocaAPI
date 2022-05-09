@@ -35,10 +35,9 @@ namespace BocaAPI.Repository
         } 
         public async Task DeleteErrors() => await db.ExecuteAsync("truncate table ErrorLogs; ");
 
-        public async Task<IEnumerable<RawExportData>> UploadToDatabase(List<VCSExport> records, string fn)
+        public async Task<IEnumerable<RawExportData>> UploadToDatabase(List<VCSExport> records, string fn, string InsertId)
         {
-            await db.ExecuteAsync("truncate table NewlyInserted; ");
-            var InsertId = Guid.NewGuid().ToString();
+
             foreach (var rec in records)
             {
                 //build bag
@@ -101,12 +100,10 @@ namespace BocaAPI.Repository
 
         }
 
-        public async Task<IEnumerable<RawExportData>> GetForOutput()
+        public async Task<IEnumerable<RawExportData>> GetForOutput(string InsertId)
         {
-            var rtn = await db.QueryAsync<RawExportData>(
-                @"SELECT * FROM NewlyInserted;"
-               );
-          //  await db.ExecuteAsync("truncate table NewlyInserted; ");
+            var rtn = await db.QueryAsync<RawExportData>(" select payid, wcpid,rosdate, payduration, comment from police_master where InsertId=@InsertId",
+                        new { InsertId = InsertId });
             return rtn;
         }
 
