@@ -24,8 +24,24 @@ namespace BocaAPI.Repository
         {
             try
             {
-                var x = db.Execute(@"insert into ErrorLogs (Message, TimeStamp, Exception, RowNum) 
-                values (@Message, @TimeStamp, @Exception, @RowNum )", er);
+                var x = db.Execute(@"insert into ErrorLogs (
+                    Message, 
+                    TimeStamp, 
+                    Exception, 
+                    RowNum,
+                    EmployeeNumber,
+                    PayrollTimeType,
+                    Date,
+                    Hours) 
+                values (
+                        @Message, 
+                        @TimeStamp, 
+                        @Exception, 
+                        @RowNum, 
+                        @EmployeeNumber,
+                        @PayrollTimeType,
+                        @Date,
+                        @Hours)", er);
             }
             catch(Exception ex)
             {
