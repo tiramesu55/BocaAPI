@@ -134,6 +134,8 @@ namespace BocaAPI.Services
                 AssignmentNumber = p.AssignmentNumber,
                 Date = p.Date,
                 Hours = p.Hours,
+                StartTime = p.StartTime,
+                StopTime = p.StopTime,
                 HoursTypeIndicator = p.HoursTypeIndicator,
                 PayrollTimeType = "STRAIGHT OT POLICE",
                 Comments = p.Comments,
