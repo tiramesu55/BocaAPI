@@ -1,4 +1,5 @@
-﻿using CsvHelper.Configuration.Attributes;
+﻿using System.Globalization;
+using CsvHelper.Configuration.Attributes;
 
 
 namespace BocaAPI.Models.DTO
@@ -7,7 +8,7 @@ namespace BocaAPI.Models.DTO
     {
 		public int EmployeeNumber { get; set; }
 		public string AssignmentNumber { get; set; }
-		public DateTime Date { get; set; }
+		public string Date { get; set; }
 		public decimal Hours { get; set; }
 		public char HoursTypeIndicator { get; set; }
 		public string PayrollTimeType{ get; set; }
@@ -24,8 +25,8 @@ namespace BocaAPI.Models.DTO
         {
 			EmployeeNumber = export.PayId;
 			AssignmentNumber = $"E{export.PayId}";
-			Date = export.ROSDate;
-			Hours = export.PayDuration;	 
+			Date = export.ROSDate.ToString(@"MM/dd/yyyy", CultureInfo.InvariantCulture);
+			Hours = Math.Round(export.PayDuration, 2);	 
 			Comments = export.Comment;
 			PayrollTimeType = rf.Oracle;
 			HoursTypeIndicator = rf.HourType[0];  //first char	
