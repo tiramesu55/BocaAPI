@@ -28,14 +28,14 @@ namespace BocaAPI.Models.DTO
 			EmployeeNumber = export.PayId;
 			AssignmentNumber = $"E{export.PayId}";
 			Date = export.ROSDate.ToString(@"MM/dd/yyyy", CultureInfo.InvariantCulture);
-			Hours = Math.Round(export.PayDuration, 2);	 
-			Comments = export.Comment;
+			Hours = Math.Round(export.PayDuration, 2);
+			Comments = ""; //Boca requested empty comment in result //export.Comment;
 			StartTime = default;
 			StopTime = default;
 			PayrollTimeType = rf.Oracle;
 			HoursTypeIndicator = rf.HourType[0];  //first char	
 			OperationType = "ADD";
-			duplicate = export.WcpId == "OT" || export.WcpId == "OTC" ? true : false;
+			duplicate =  export.Shftab=="OT" || export.WcpId == "OT" || export.WcpId == "OTC" ? true : false;
         }		
 	}
 }
