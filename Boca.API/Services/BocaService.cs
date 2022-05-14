@@ -73,7 +73,15 @@ namespace BocaAPI.Services
                 //get invalid records and log them
                 var invalidRecords = validatedRecords.Where(record => !record.IsValid).ToList();
                 invalidRecords.ForEach(r => _repository.LogError(
-                             new Error { RowNum = r.Number, Message = r.Errors, TimeStamp = DateTime.Now }));
+                             new Error {
+                                 RowNum = r.Number, 
+                                 Message = r.Errors, 
+                                 TimeStamp = DateTime.Now,
+                                 EmployeeNumber = r.Record.PAYID,
+                                 PayrollTimeType = r.Record.WCPID,
+                                 Date = r.Record.ROSDT,
+                                 Hours = r.Record.PAYDURAT
+                             }));
 
                 //load valid records
                 var validRecords = validatedRecords.Where(r => r.IsValid).ToList();
@@ -126,6 +134,8 @@ namespace BocaAPI.Services
                 AssignmentNumber = p.AssignmentNumber,
                 Date = p.Date,
                 Hours = p.Hours,
+                StartTime = p.StartTime,
+                StopTime = p.StopTime,
                 HoursTypeIndicator = p.HoursTypeIndicator,
                 PayrollTimeType = "STRAIGHT OT POLICE",
                 Comments = p.Comments,
