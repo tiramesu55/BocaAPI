@@ -10,5 +10,6 @@ namespace BocaAPI.Interfaces
         Task<List<Error>> GetErrors();
         Task  DeleteErrors();
         void LogError(Error er);
+        Task Archive();
     }
 }

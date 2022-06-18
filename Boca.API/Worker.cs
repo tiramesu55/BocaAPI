@@ -37,6 +37,10 @@ namespace BocaAPI
                 _logger.LogWarning("Worker running at: {time}", DateTimeOffset.Now);
                  await service.UploadInputFileToDatabase();
                  await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
+                //archive if time after 11PM and before midnight
+                var currentTime = DateTimeOffset.Now.TimeOfDay.Hours;
+                if (currentTime > 23)
+                    await service.Archive();
             }
             _logger.LogCritical("_Boca Service Worker Stoppes Unexpectingly.  Please restart service");
         }

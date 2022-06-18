@@ -15,7 +15,20 @@ namespace BocaAPI.Repository
             db = new SqlConnection(connectionString);
         }
 
+        public async Task Archive()
+        {
+            try
+            {
+                var selected = await db.ExecuteAsync(@"insert into [dbo].[archive_police_master]
+                                    select * from [dbo].[police_master] where [ROSDate] < DATEADD(year, -1,GETDATE())");
+                if (selected > 0)
+                    await db.ExecuteAsync(@"delete [dbo].[police_master] where [ROSDate] < DATEADD(year, -1,GETDATE())");
+            }
+            catch (Exception ex)
+            {
 
+            }
+        }
         public async Task<List<PoliceCode>> GetPoliceCodes() => (await db.QueryAsync<PoliceCode>("SELECT * FROM dbo.police_codes")).ToList();
 
         public async Task<List<Error>> GetErrors() => (await db.QueryAsync<Error>("SELECT Message,TimeStamp, Exception, RowNum FROM ErrorLogs")).ToList();

@@ -102,6 +102,13 @@ namespace BocaAPI.Services
                 _logger.LogCritical(ex.Message, ex);
             }
         }
+
+        public async Task Archive()
+        {
+            // call archive method on repository
+            await _repository.Archive();
+        }
+
         //Format email body
         private string CreateBody(int totalRecords, int errorRecords, int validRecords, int? addedRecords)
         {

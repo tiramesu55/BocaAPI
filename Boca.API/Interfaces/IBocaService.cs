@@ -10,5 +10,6 @@ namespace BocaAPI.Interfaces
         IEmail Email { get; }
 
         //3. Post for returning all ids in date range (startDt - endDt)
+        Task Archive();
     }
 }
