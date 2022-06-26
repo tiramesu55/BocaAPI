@@ -32,7 +32,7 @@ namespace BocaAPI.Models.DTO
 			Comments = ""; //Boca requested empty comment in result //export.Comment;
 			StartTime = default;
 			StopTime = default;
-			PayrollTimeType = rf.Oracle;
+			PayrollTimeType = (export.Shftab == "OT" || export.Shftab == "OTC") && (export.WcpId != "CTE" && export.WcpId != "CTEJ") ? "OVERTIME POLICE" : rf.Oracle;
 			HoursTypeIndicator = rf.HourType[0];  //first char	
 			OperationType = "ADD";
 			duplicate =  (export.Shftab=="OT" || export.Shftab == "OTC") && (export.WcpId != "CTE" && export.WcpId != "CTEJ") || export.WcpId == "OT" || export.WcpId == "OTC" ? true : false;
