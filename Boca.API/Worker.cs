@@ -27,6 +27,7 @@ namespace BocaAPI
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             var connStr = _cfg.GetValue<string>("ConnectionStrings:BocaDBConnectionString");
+            var frequency = _cfg.GetValue<int>("Folders:Frequency");
             if (connStr == null) return;
             var repo = new BocaRepository(connStr);
             var email = new Email(_logger, _emailConfig);
@@ -36,7 +37,7 @@ namespace BocaAPI
             {
                 _logger.LogWarning("Worker running at: {time}", DateTimeOffset.Now);
                  await service.UploadInputFileToDatabase();
-                 await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
+                 await Task.Delay(TimeSpan.FromMinutes(frequency), stoppingToken);
                 //archive if time after 11PM and before midnight
                 var currentTime = DateTimeOffset.Now.TimeOfDay.Hours;
                 if (currentTime > 23)
