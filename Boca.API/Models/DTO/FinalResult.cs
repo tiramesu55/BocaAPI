@@ -35,7 +35,7 @@ namespace BocaAPI.Models.DTO
 			PayrollTimeType = rf.Oracle;
 			HoursTypeIndicator = rf.HourType[0];  //first char	
 			OperationType = "ADD";
-			duplicate =  export.Shftab=="OT" && (export.WcpId != "CTE" || export.WcpId != "CTEJ") || export.WcpId == "OT" || export.WcpId == "OTC" ? true : false;
+			duplicate =  (export.Shftab=="OT" || export.Shftab == "OTC") && (export.WcpId != "CTE" && export.WcpId != "CTEJ") || export.WcpId == "OT" || export.WcpId == "OTC" ? true : false;
         }		
 	}
 }
