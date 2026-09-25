@@ -6,6 +6,7 @@ namespace BocaAPI.Interfaces
     {
         Task UploadInputFileToDatabase();
         Task<List<FinalResult>> ExportLatest(string InsertId, string FileName = "VCSTime");
+        Task<List<FinalResult>> ExportLastUpload(string FileName = "VCSTime");
         IBocaRepository Repository { get; }
         IEmail Email { get; }
 

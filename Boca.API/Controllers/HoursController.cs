@@ -66,14 +66,16 @@ namespace BocaAPI.Controllers
             return Ok();
         }
         /// <summary>
-        /// this action returns OK if all records are loaded.  We can change to return the number of loaded records or the number of exceptions
+        /// re-exports the most recently uploaded file to {Name}_MMddyyyy_HHmm.csv and returns its rows
         /// </summary>
         /// <returns></returns>
         [HttpGet("ExportFile/{Name?}")]
         public async Task<ActionResult> ExportFile( string Name= "VCSTime")
         {
 
-            var recs = await _service.ExportLatest(Name);
+            var recs = await _service.ExportLastUpload(Name);
+            if (recs == null)
+                return NotFound("No uploaded file to export yet");
 
             return Ok(recs);
         }

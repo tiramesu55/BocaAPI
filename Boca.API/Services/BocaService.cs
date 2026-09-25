@@ -89,7 +89,11 @@ namespace BocaAPI.Services
                 var InsertId = Guid.NewGuid().ToString();
                 var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList(), fnForRecord, InsertId);
                 if (rtn?.Count() > 0)
+                {
                     await ExportLatest(InsertId);
+                    //remember this batch so api/hours/ExportFile can re-export it (police_master has no insert timestamp to find it by)
+                    File.WriteAllText(LastInsertIdFile, InsertId);
+                }
                 var body = CreateBody(readResults.Count(), invalidRecords.Count(), validRecords.Count(), rtn?.Count());
                 var header = CreateHeader(invalidRecords.Count() != 0, fnForRecord);
                 await Email.Send(body, header);
@@ -101,6 +105,17 @@ namespace BocaAPI.Services
             {
                 _logger.LogCritical(ex.Message, ex);
             }
+        }
+
+        private string LastInsertIdFile => $@"{ _settings.BaseFilePath}\last-insert-id.txt";
+
+        //re-export the most recent upload; returns null if nothing has been uploaded yet
+        public async Task<List<FinalResult>> ExportLastUpload(string FileName = "VCSTime")
+        {
+            if (!File.Exists(LastInsertIdFile))
+                return null;
+            var InsertId = File.ReadAllText(LastInsertIdFile).Trim();
+            return await ExportLatest(InsertId, FileName);
         }
 
         public async Task Archive()
