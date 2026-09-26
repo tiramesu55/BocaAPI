@@ -39,6 +39,7 @@ namespace BocaAPI.Extensions
                 {
                     records.Add(new CsvReadResult<T>()
                     {
+                        RowNumber = count,  //data row number in the file, header excluded (first record = 1)
                         Record = csvReader.GetRecord<T>(),
                         IsValid = true
                     });
@@ -47,11 +48,18 @@ namespace BocaAPI.Extensions
                 {
                     if(count > 0)
                     {
+                        //keep the raw values by column name so the caller can tell a junk line from a bad record
+                        var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                        var header = csvReader.HeaderRecord ?? Array.Empty<string>();
+                        var values = csvReader.Parser.Record ?? Array.Empty<string>();
+                        for (var i = 0; i < Math.Min(header.Length, values.Length); i++)
+                            fields.TryAdd(header[i], values[i]);
                         records.Add(new CsvReadResult<T>()
                         {
                             RowNumber = count,
                             IsValid = false,
-                            Errors = e.Message
+                            Errors = e.Message,
+                            Fields = fields
                         });
                     }
                 }
@@ -68,6 +76,8 @@ namespace BocaAPI.Extensions
             public T? Record { get; set; }
             public bool IsValid { get; set; }
             public string? Errors { get; set; }
+            //raw column values of an unreadable row (null for rows that read fine)
+            public Dictionary<string, string>? Fields { get; set; }
         }
     }
 }

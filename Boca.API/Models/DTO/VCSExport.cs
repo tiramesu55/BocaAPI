@@ -21,6 +21,8 @@ namespace BocaAPI.Models.DTO
         [Name("RECTYP", "File Date")][Optional] public string RECTYP { get => _rectyp; set => _rectyp = value?.Length > 50 ? value[..50] : value; }
         [Name("PAYDURAT")] public decimal PAYDURAT { get; set; }
         [Name("Comment")] public string Comment { get; set; }
+        //data row number in the csv file, header excluded (first record = 1); not a file column
+        [Ignore] public int RowNum { get; set; }
 
     }
 }

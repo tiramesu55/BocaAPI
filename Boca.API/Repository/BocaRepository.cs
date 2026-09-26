@@ -64,9 +64,9 @@ namespace BocaAPI.Repository
         } 
         public async Task DeleteErrors() => await db.ExecuteAsync("truncate table ErrorLogs; ");
 
-        public async Task<IEnumerable<RawExportData>> UploadToDatabase(List<VCSExport> records, string fn, string InsertId)
+        public async Task<(IEnumerable<RawExportData> Inserted, int Failed)> UploadToDatabase(List<VCSExport> records, string fn, string InsertId)
         {
-
+            var failed = 0;
             foreach (var rec in records)
             {
                 //build bag
@@ -74,7 +74,9 @@ namespace BocaAPI.Repository
                 //add file name to bag
                 param.Add("fn", fn, DbType.String, ParameterDirection.Input, fn.Length);
                 param.Add("InsertId", InsertId, DbType.String, ParameterDirection.Input, InsertId.Length);
-                await db.ExecuteAsync(
+                try
+                {
+                    await db.ExecuteAsync(
                 @"
                 MERGE INTO police_master t 
                     USING ( VALUES 
@@ -122,10 +124,28 @@ namespace BocaAPI.Repository
                                s.[InsertId] ) 
                                    ;", param
                         );
+                }
+                //severity 16 = bad data in this record (conversion, truncation, null, constraint): log it and keep loading the rest.
+                //anything else (connection lost, timeout, deadlock) propagates so the file stays in input and is retried next cycle
+                catch (SqlException ex) when (ex.Class == 16)
+                {
+                    failed++;
+                    LogError(new Error
+                    {
+                        RowNum = rec.RowNum,
+                        Message = $"Insert failed: {ex.Message}",
+                        Exception = $"SqlException {ex.Number}",
+                        TimeStamp = DateTime.Now,
+                        EmployeeNumber = rec.PAYID,
+                        PayrollTimeType = rec.WCPID,
+                        Date = rec.STRDT,
+                        Hours = rec.PAYDURAT
+                    });
+                }
             }
            var rtn = await db.QueryAsync<RawExportData>(" select payid, wcpid,rosdate, strdate, payduration, comment, shftab from police_master where InsertId=@InsertId", 
                         new { InsertId = InsertId }); 
-           return rtn;
+           return (rtn, failed);
 
         }
 

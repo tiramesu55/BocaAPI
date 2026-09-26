@@ -84,8 +84,17 @@ The same process runs two ways at once:
    If the file added any rows, its `InsertId` is also saved to `{BaseFilePath}\last-insert-id.txt`, which
    `GET /api/hours/ExportFile` uses to re-export the latest upload. `police_master` has no insert timestamp,
    so this file is the only record of which batch was uploaded most recently.
-7. **Email** a summary to `EmailConfiguration.To`: total records, error records, records attempted,
-   and records added.
+7. **Email** a summary to `EmailConfiguration.To`. The subject starts with `SUCCESS` when every record
+   loaded, or `FAILURE` with the number of records not loaded. The body shows total records and records
+   inserted. When relevant it also shows records skipped because they were already loaded (not a failure),
+   records not loaded (unreadable / failed validation / rejected by the database), and comment line breaks
+   that were ignored. The numbers always add up to the total.
+   * A record the database rejects for bad data (e.g. a value too long for its column) is logged to
+     `ErrorLogs`, and the rest of the file keeps loading. A connection failure, timeout or deadlock stops the
+     run instead, and the file stays in `input` to be retried next cycle. No email is sent in that case.
+   * VCS doesn't quote the `Comment` column, so a line break inside a comment produces lines with no pay code,
+     dates or hours. These aren't counted as records and don't cause a `FAILURE`; they are still logged to
+     `ErrorLogs`.
 8. **Archive.** The input file is moved to `{BaseFilePath}\{ArchiveFilePath}\<name>-<UTC timestamp>.csv`.
 
 Exceptions are caught and logged as Critical to the Windows Event Log (source `_BocaService`).
@@ -120,7 +129,10 @@ Columns are matched by name, so their order doesn't matter.
   Older files had `RECTYP`; current files have `File Date` (e.g. `PPE 09/13`), which is read into the same field.
   If neither column is present, the value is a single space `" "`. Values over 50 characters are truncated.
 * An unquoted line break inside a `Comment` splits the row. The fragment after the break (e.g.
-  `2026-008080- Knock and talk,,,,…`) fails to parse and is logged to `ErrorLogs`. The actual time row is unaffected.
+  `2026-008080- Knock and talk,,,,…`) fails to parse and is logged to `ErrorLogs`. The actual time row is unaffected,
+  and the email reports the fragment as an ignored line, not a failed record.
+* `ROSDT`, `STRDT` and `ENDDT` must fall between 1900-01-01 and 2079-06-06 23:59 (the SQL `smalldatetime` range).
+  A record outside it fails validation.
 
 ### Database objects (SQL Server)
 
@@ -128,7 +140,7 @@ Columns are matched by name, so their order doesn't matter.
 |---|---|
 | `dbo.police_codes` | Code mapping (`Infinium_Codes`, `Oracle`, `VCS`, `HourType`) |
 | `dbo.police_master` | All loaded rows (`PayId, WcpId, WCABR, ReasonCode, Reason, ROSDate, STRDate, ENDDate, SHFTAB, Removed, RecType, PayDuration, Comment, FileName, InsertId`) |
-| `dbo.ErrorLogs` | Rejected rows (`Message, TimeStamp, Exception, RowNum, EmployeeNumber, PayrollTimeType, Date, Hours`) |
+| `dbo.ErrorLogs` | Rejected rows (`Message, TimeStamp, Exception, RowNum, EmployeeNumber, PayrollTimeType, Date, Hours`). `RowNum` is the record's data row number in the CSV, header excluded (first record = 1, i.e. Excel row − 1). `Date` is the record's `STRDT` |
 | `dbo.archive_police_master` | Archive for rows more than a year old. Same columns as `police_master`, plus an identity column `arc-id` (see `archiveTable.sql`) |
 
 ## Configuration (`appsettings.json`)
@@ -201,5 +213,18 @@ dotnet run --project Boca.API            # console mode, Ctrl+C to stop
 
 In console mode the worker runs right away. Put a CSV in the configured input folder, and the results
 show up in the output folder.
+
+## Tests
+
+`Boca.API.Tests` (xUnit, net6.0) covers CSV reading, validation, the payroll output (STRDT date, CTE/CTEJ and
+overtime rules), the email summary, ErrorLogs row numbers, and per-record insert error handling.
+
+```powershell
+dotnet test Boca.API.Tests                                     # all tests
+dotnet test Boca.API.Tests --filter "Category!=Integration"    # skip the SQL Server tests
+```
+
+Tests tagged `Category=Integration` need SQL Server LocalDB (`(localdb)\MSSQLLocalDB`). Each run creates a
+throwaway database and drops it afterwards. The other tests use fakes and need no database.
 
 Deployment to production: see [DEPLOYMENT.md](DEPLOYMENT.md).

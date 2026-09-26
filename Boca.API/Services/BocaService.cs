@@ -56,12 +56,14 @@ namespace BocaAPI.Services
                              new Error { RowNum = readResult.RowNumber.Value, Message = readResult.Errors, TimeStamp = DateTime.Now }));
 
                 //now run record that were converted through validator
-                var validatedRecords = readResults.Where(p => p.IsValid).Select((record, i) =>
+                var validatedRecords = readResults.Where(p => p.IsValid).Select(record =>
                 {
                     var validationResult = validator.Validate(record.Record);
+                    //carry the csv data row number so a database rejection can be logged against it too
+                    record.Record.RowNum = record.RowNumber.Value;
                     return new
                     {
-                        Number = i,
+                        Number = record.RowNumber.Value,
                         Record = record.Record,
                         IsValid = validationResult.IsValid,
                         Errors = validationResult.Errors
@@ -87,16 +89,23 @@ namespace BocaAPI.Services
                 var validRecords = validatedRecords.Where(r => r.IsValid).ToList();
                 //create a cookie
                 var InsertId = Guid.NewGuid().ToString();
-                var rtn = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList(), fnForRecord, InsertId);
-                if (rtn?.Count() > 0)
+                var (inserted, dbRejected) = await _repository.UploadToDatabase(validRecords.Select(r => r.Record).ToList(), fnForRecord, InsertId);
+                var insertedCount = inserted.Count();
+                if (insertedCount > 0)
                 {
                     await ExportLatest(InsertId);
                     //remember this batch so api/hours/ExportFile can re-export it (police_master has no insert timestamp to find it by)
                     File.WriteAllText(LastInsertIdFile, InsertId);
                 }
-                var body = CreateBody(readResults.Count(), invalidRecords.Count(), validRecords.Count(), rtn?.Count());
-                var header = CreateHeader(invalidRecords.Count() != 0, fnForRecord);
-                await Email.Send(body, header);
+                var fragments = readResults.Count(IsCommentFragment);
+                var counts = new LoadCounts(
+                    Total: readResults.Count - fragments,
+                    Unreadable: readResults.Count(r => !r.IsValid) - fragments,
+                    Invalid: invalidRecords.Count,
+                    DbRejected: dbRejected,
+                    Inserted: insertedCount,
+                    CommentFragments: fragments);
+                await Email.Send(CreateBody(Path.GetFileName(file), counts), CreateHeader(Path.GetFileName(file), counts));
                 File.Move(file, $@"{ArchiveFolder}\{fileName}", true);  //move with overwrite
 
                 return;
@@ -124,23 +133,45 @@ namespace BocaAPI.Services
             await _repository.Archive();
         }
 
-        //Format email body
-        private string CreateBody(int totalRecords, int errorRecords, int validRecords, int? addedRecords)
+        //every record in the file ends up in exactly one bucket: Total = Unreadable + Invalid + DbRejected + AlreadyLoaded + Inserted
+        public record LoadCounts(int Total, int Unreadable, int Invalid, int DbRejected, int Inserted, int CommentFragments = 0)
         {
-            var res = $"Total Records: {totalRecords} \nNumber of error records: {errorRecords}\nRecords attempted to add: {validRecords}\nAdded Records: {addedRecords}";
-            return res;
+            public int Failed => Unreadable + Invalid + DbRejected;
+            //valid records the MERGE skipped because the same shift is already in police_master (e.g. file dropped twice)
+            public int AlreadyLoaded => Total - Failed - Inserted;
         }
 
-        private string CreateHeader( bool hasErrors, string fileName)
+        //VCS does not quote Comment, so a line break in a comment starts a new "row" holding just the rest of the comment
+        //(and the File Date). It is not a time record: no pay code, dates or hours, so it is not counted as a record
+        private static readonly string[] RecordColumns = { "WCPID", "ROSDT", "STRDT", "ENDDT", "PAYDURAT" };
+        public static bool IsCommentFragment(CsvExtensions.CsvReadResult<VCSExport> r) =>
+            !r.IsValid && r.Fields != null && RecordColumns.All(c => !r.Fields.TryGetValue(c, out var v) || string.IsNullOrWhiteSpace(v));
+
+        //Format email subject: SUCCESS only when no record was rejected; skipped duplicates are not a failure
+        public static string CreateHeader(string fileName, LoadCounts c) =>
+            c.Failed == 0
+                ? $"SUCCESS - VCS file {fileName}: {c.Inserted} of {c.Total} records inserted"
+                : $"FAILURE - VCS file {fileName}: {c.Failed} of {c.Total} records NOT loaded";
+
+        //Format email body
+        public static string CreateBody(string fileName, LoadCounts c)
         {
-            if(hasErrors)
-            {
-                return $"File {fileName} has been loaded with errors";
-            }
-            else
-            {
-                return $"File {fileName} has been loaded successfully";
-            }
+            var body = $"File: {fileName}\n" +
+                       $"Processed: {DateTime.Now:MM/dd/yyyy HH:mm}\n\n" +
+                       $"Total records in file:          {c.Total}\n" +
+                       $"Successfully inserted:          {c.Inserted}\n";
+            if (c.AlreadyLoaded > 0)
+                body += $"Skipped, already loaded before: {c.AlreadyLoaded}\n";
+            if (c.CommentFragments > 0)
+                body += $"\nLines ignored, not records:     {c.CommentFragments} (line breaks inside VCS comments)\n";
+            if (c.Failed > 0)
+                body += $"\nNOT loaded:                     {c.Failed}\n" +
+                        $"  Unreadable (bad format):      {c.Unreadable}\n" +
+                        $"  Failed validation:            {c.Invalid}\n" +
+                        $"  Rejected by database:         {c.DbRejected}\n\n" +
+                        "Details of each record that was not loaded are in the ErrorLogs table (GET api/hours/GetErrors).\n" +
+                        "Correct them and drop the file into the input folder again; records already loaded are skipped.\n";
+            return body;
         }
         public async Task<List<FinalResult>> ExportLatest( string InsertId, string FileName = "VCSTime")
         {
