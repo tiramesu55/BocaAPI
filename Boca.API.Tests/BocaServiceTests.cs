@@ -102,7 +102,7 @@ namespace Boca.API.Tests
         {
             var input = Path.Combine(_base, "input", "VCS_test.csv");
             File.WriteAllText(input,
-                "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,File Date,PAYDURAT,Comment\n" +
+                "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,RECTYP,PAYDURAT,Comment\n" +
                 "12288,OTC,OT,,,8/31/2026,8/27/2026 15:30,8/27/2026 21:30,OT,FALSE,PPE 09/13,6,\n" +
                 "12289,XYZ,OT,,,8/31/2026,8/28/2026 15:30,8/28/2026 21:30,OT,FALSE,PPE 09/13,6,\n");
 
@@ -132,7 +132,7 @@ namespace Boca.API.Tests
         {
             var input = Path.Combine(_base, "input", "VCS_garbage.csv");
             File.WriteAllText(input,
-                "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,File Date,PAYDURAT,Comment\n" +
+                "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,RECTYP,PAYDURAT,Comment\n" +
                 "12288,REG,REG HRS,,,9/1/2026,9/1/2026 7:30,9/1/2026 15:30,ADMIN,FALSE,PPE,8,\n" +
                 "12289,REG,REG HRS,,,9/1/2026,9/1/2206 7:30,9/1/2026 15:30,ADMIN,FALSE,PPE,8,\n" +
                 "12290,REG,REG HRS,,,9/1/2026,9/1/2026 7:30,9/1/2026 15:30,ADMIN,FALSE,PPE,8,\n");
@@ -146,7 +146,7 @@ namespace Boca.API.Tests
             Assert.False(File.Exists(input)); //file archived, not stuck in input
         }
 
-        private const string Header = "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,File Date,PAYDURAT,Comment\n";
+        private const string Header = "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,RECTYP,PAYDURAT,Comment\n";
         private static string Row(int payId, string wcp = "REG") => $"{payId},{wcp},REG HRS,,,9/1/2026,9/1/2026 7:30,9/1/2026 15:30,ADMIN,FALSE,PPE,8,\n";
 
         [Fact]
@@ -255,10 +255,40 @@ namespace Boca.API.Tests
         }
 
         [Fact]
+        public async Task ProductionTestFile_GoodRowIsLoaded_AndExportFileAlecReExportsIt()
+        {
+            //input/test-2026.csv as run in production: row 2 has month 14, row 3 has hour 36, no newline at end of file
+            File.WriteAllText(Path.Combine(_base, "input", "test-2026.csv"),
+                Header +
+                "12288,REG,REG HRS,,,7/3/2026,4/3/2024 7:30,4/3/2024 15:00,VIN,FALSE,,7.5,\n" +
+                "14832,A,Annual Vac,,Annual Vacation,9/7/2026,14/7/2026 7:30,9/7/2026 15:30,ISBSU,FALSE,,3,\n" +
+                "15870,AJ,Annual Vac,,Annual Vacation,9/3/2026,9/29/2026 14:00,8/29/2026 36:45,ISBPR,FALSE,,5.75,");
+
+            await _service.UploadInputFileToDatabase();
+
+            var uploaded = Assert.Single(_repo.Uploaded);
+            Assert.Equal(12288, uploaded.PAYID);
+            Assert.Equal("", uploaded.RECTYP);
+            Assert.Equal(new[] { 2, 3 }, _repo.Errors.Select(e => e.RowNum));
+            Assert.Equal("FAILURE - VCS file test-2026.csv: 2 of 3 records NOT loaded", Assert.Single(_email.Sent));
+
+            //upload export is dated by STRDT, not ROSDT
+            var auto = File.ReadAllLines(Assert.Single(Directory.GetFiles(Path.Combine(_base, "results"), "VCSTime_*.csv")));
+            Assert.Equal(2, auto.Length);
+            Assert.StartsWith("12288,E12288,04/03/2024,7.5,R,REGULAR POLICE,", auto[1]);
+
+            //api/hours/ExportFile/Alec re-exports the same batch into Alec_*.csv
+            var again = await _service.ExportLastUpload("Alec");
+            Assert.Equal("04/03/2024", Assert.Single(again).Date);
+            var alec = File.ReadAllLines(Assert.Single(Directory.GetFiles(Path.Combine(_base, "results"), "Alec_*.csv")));
+            Assert.Equal(auto, alec);
+        }
+
+        [Fact]
         public async Task Upload_WithNothingLoaded_DoesNotWriteMarkerFile()
         {
             File.WriteAllText(Path.Combine(_base, "input", "bad.csv"),
-                "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,File Date,PAYDURAT,Comment\n" +
+                "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,RECTYP,PAYDURAT,Comment\n" +
                 "12289,XYZ,OT,,,8/31/2026,8/28/2026 15:30,8/28/2026 21:30,OT,FALSE,PPE,6,\n");
 
             await _service.UploadInputFileToDatabase();

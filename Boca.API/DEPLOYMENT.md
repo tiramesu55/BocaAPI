@@ -28,8 +28,8 @@ BocaAPI runs as a **Windows Service** (`_BocaService`) that hosts its own HTTP s
    * If SQL uses Windows auth, a SQL login with rights on `police_master`, `police_codes` and `ErrorLogs`
 4. **Database objects** (`police_codes`, `police_master`, `ErrorLogs`, `archive_police_master`) exist, and
    `police_codes` has current data, including CTE/CTEJ mappings. See README → *Database objects*.
-   `police_master.RecType` must be `nvarchar(50) NULL`, as in `archiveTable.sql`. It now receives the `File Date`
-   value (e.g. `PPE 09/13`) or `" "`. Check it on the production database:
+   `police_master.RecType` must be `nvarchar(50) NULL`, as in `archiveTable.sql`. It receives the file's `RECTYP`
+   value, which is empty in current VCS files. Check it on the production database:
    ```sql
    SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE
    FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'police_master' AND COLUMN_NAME = 'RecType';
@@ -176,12 +176,12 @@ sc.exe delete "_BocaService"
 |---|---|
 | Service fails to start, event says *"You must install or update .NET"* | ASP.NET Core **6.0** runtime (x64) is missing |
 | Service runs but nothing happens | No `*.csv` in the input folder, wrong `BaseFilePath`, or the service account can't read the folder |
-| Every row rejected with `Header with name '…' was not found` | A required column (PAYID, WCPID, ROSDT, STRDT, ENDDT, SHFTAB, PAYDURAT…) is missing or renamed in the VCS export. `RECTYP`/`File Date` is optional |
+| Every row rejected with `Header with name '…' was not found` | A required column (PAYID, WCPID, ROSDT, STRDT, ENDDT, SHFTAB, PAYDURAT…) is missing or renamed in the VCS export. `RECTYP` is required too: a file with `File Date` in its place fails this way |
 | Rows like `2026-008080- Knock and talk,,,…` rejected with *"The conversion cannot be performed"* | A multi-line comment split the row in the VCS export. Harmless: the actual time row still loads |
 | `police_master` never shrinks / `archive_police_master` stays empty | Check the Event Log for the nightly *"Archiving police_master records…"* entry. If it's missing, `Frequency` is probably ≥ 60. If it's there but nothing moved, the `INSERT … SELECT *` likely failed silently: compare the columns of `archive_police_master` and `police_master` |
 | Rows rejected as invalid `WCPID` | Code missing from `dbo.police_codes`. Add it to the table; no code change needed |
 | No email | `SmtpServer` is empty, the relay rejects the server's IP, or the port is wrong. Check Event Log Critical entries |
 | Port 9200 already in use | Change `Kestrel:Endpoints:Http:Url` |
 | `ExportFile` returns 404 *"No uploaded file to export yet"* | No file has added rows since deployment, so `last-insert-id.txt` doesn't exist yet. Load a file first. If it still fails, the service account can't write to `BaseFilePath` |
-| `ExportFile` returns 200 but `[]` (older builds only) | Known bug fixed on branch `fix/exportfile-latest`: the old build used the file name as the batch id. Deploy the fixed build |
+| `ExportFile/{Name}` returns 200 but `[]`, and writes an empty `VCSTime_*.csv` instead of `{Name}_*.csv` (older builds only) | Known bug, fixed in commit 2436d66: builds before it passed `Name` as the batch id, so the export always matched no rows and used the default `VCSTime` prefix. It says nothing about whether the upload worked; check `police_master` or the upload email. Deploy the current build |
 | `/swagger` doesn't load | Service isn't running, or the port/firewall is blocking it. Check `sc.exe query "_BocaService"` and `Kestrel:Endpoints:Http:Url` |

@@ -18,6 +18,7 @@ namespace Boca.API.Tests
             ENDDT = new DateTime(2026, 8, 31, 15, 30, 0),
             SHFTAB = "ADMIN",
             REMOVED = "FALSE",
+            RECTYP = "",
             PAYDURAT = 8m
         };
 
@@ -89,15 +90,34 @@ namespace Boca.API.Tests
             Assert.Equal(nameof(VCSExport.ENDDT), Assert.Single(_validator.Validate(rec).Errors).PropertyName);
         }
 
+        //production VCS files send RECTYP empty; the column is nvarchar(50)
         [Theory]
-        [InlineData(null)]
         [InlineData("")]
-        public void Rectyp_IsNotValidated(string rectyp)
+        [InlineData("PPE 09/27")]
+        public void Rectyp_EmptyOrUpTo50_Passes(string rectyp)
         {
             var rec = ValidRecord();
             rec.RECTYP = rectyp;
 
             Assert.True(_validator.Validate(rec).IsValid);
+        }
+
+        [Fact]
+        public void Rectyp_Null_Fails()
+        {
+            var rec = ValidRecord();
+            rec.RECTYP = null;
+
+            Assert.Equal(nameof(VCSExport.RECTYP), Assert.Single(_validator.Validate(rec).Errors).PropertyName);
+        }
+
+        [Fact]
+        public void Rectyp_LongerThan50_Fails()
+        {
+            var rec = ValidRecord();
+            rec.RECTYP = new string('A', 51);
+
+            Assert.Equal(nameof(VCSExport.RECTYP), Assert.Single(_validator.Validate(rec).Errors).PropertyName);
         }
 
         [Fact]

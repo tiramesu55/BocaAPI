@@ -52,7 +52,7 @@ The same process runs two ways at once:
 3. **Parse CSV** into `VCSExport` with CsvHelper. Rows that can't be parsed are written to `ErrorLogs`.
 4. **Validate** each row with `PoliceMasterValidator`. `WCPID` must exist in `police_codes`,
    and the validator also checks field lengths, required dates, and `PAYDURAT` precision
-   (`RECTYP` is not validated).
+   (`RECTYP` may be empty, up to 50 characters).
    Invalid rows are written to `ErrorLogs` (employee, code, date = `STRDT`, hours).
 5. **Store.** Valid rows are `MERGE`d into `dbo.police_master`, tagged with the file name and a
    new `InsertId` GUID. The merge key is PAYID, WCPID, WCABR, ROSDT, STRDT, ENDDT and SHFTAB,
@@ -116,7 +116,7 @@ from `police_master`. A Warning entry is written to the Event Log when this runs
 The CSV needs a header row. Current VCS exports use:
 
 ```
-PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,File Date,PAYDURAT,Comment
+PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,RECTYP,PAYDURAT,Comment
 ```
 
 Columns are matched by name, so their order doesn't matter.
@@ -125,9 +125,10 @@ Columns are matched by name, so their order doesn't matter.
 * `STRDT` – shift start date/time. **This is the date written to the payroll output.** An earlier version
   used `ROSDT`; for overtime worked on a different day than the roster date, the two can differ.
 * `ENDDT` – shift end date/time.
-* `RECTYP` / `File Date` – **optional**, used only for storage (`police_master.RecType`, nvarchar(50)).
-  Older files had `RECTYP`; current files have `File Date` (e.g. `PPE 09/13`), which is read into the same field.
-  If neither column is present, the value is a single space `" "`. Values over 50 characters are truncated.
+* `RECTYP` – **required column**; the value may be empty, and production VCS files send it empty. It is stored in
+  `police_master.RecType` (nvarchar(50)), and a value over 50 characters fails validation. A file with a
+  `File Date` column instead of `RECTYP` (as some files in September 2026 had) is not loaded: every row is logged as
+  unreadable with `Header with name 'RECTYP' was not found`.
 * An unquoted line break inside a `Comment` splits the row. The fragment after the break (e.g.
   `2026-008080- Knock and talk,,,,…`) fails to parse and is logged to `ErrorLogs`. The actual time row is unaffected,
   and the email reports the fragment as an ignored line, not a failed record.

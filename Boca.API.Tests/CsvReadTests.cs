@@ -10,12 +10,12 @@ namespace Boca.API.Tests
         private static List<CsvExtensions.CsvReadResult<VCSExport>> Read(string csv) =>
             new MemoryStream(Encoding.UTF8.GetBytes(csv)).ReadFromCsv<VCSExport>();
 
-        //header and row taken from input/VCS_input_2026_09_13.csv
-        private const string NewHeader = "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,File Date,PAYDURAT,Comment";
+        //production header (input/VCS_2026_09_27-9-23-2026.csv) with a row whose ROSDT and STRDT differ
+        private const string NewHeader = "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,RECTYP,PAYDURAT,Comment";
         private const string OtcRow = "12288,OTC,OT,MTG2,Meeting (comment: type of meeting),8/31/2026,8/27/2026 15:30,8/27/2026 21:30,OT,FALSE,PPE 09/13,6,Explorers";
 
         [Fact]
-        public void FileDateHeader_ReadsIntoRectyp_AndKeepsDistinctStrdt()
+        public void RectypHeader_ReadsRectyp_AndKeepsDistinctStrdt()
         {
             var rec = Assert.Single(Read($"{NewHeader}\n{OtcRow}\n")).Record;
 
@@ -26,39 +26,40 @@ namespace Boca.API.Tests
         }
 
         [Fact]
-        public void LegacyRectypHeader_StillReads()
+        public void ProductionRow_EmptyRectyp_ReadsAsEmptyString()
         {
-            var csv = "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,RECTYP,PAYDURAT,Comment\n" +
-                      "12288,CTE,yyy,,,7/8/2022,3/8/2022 8:00,3/8/2022 16:00,OTC,,X,7.75,\n";
+            //row 2 of input/VCS_2026_09_27-9-23-2026.csv
+            var csv = $"{NewHeader}\n" +
+                      "12288,OTC,OT,MTG2,Meeting (comment: type of meeting),9/14/2026,9/10/2026 15:30,9/10/2026 21:30,OT,FALSE,,6,2026-09-10 15:30:00-' 2026-09-10 21:30:00 Explorers\n";
 
             var read = Assert.Single(Read(csv));
 
             Assert.True(read.IsValid);
-            Assert.Equal("X", read.Record.RECTYP);
-            Assert.Equal(new DateTime(2022, 3, 8, 8, 0, 0), read.Record.STRDT);
+            Assert.Equal("", read.Record.RECTYP);
+            Assert.Equal(new DateTime(2026, 9, 10, 15, 30, 0), read.Record.STRDT);
         }
 
         [Fact]
-        public void NoRectypColumn_DefaultsToSpace()
+        public void FileDateHeaderWithoutRectyp_NothingIsReadable()
         {
-            var csv = "PAYID,WCPID,WCABR,ReasonCode,Reason,ROSDT,STRDT,ENDDT,SHFTAB,REMOVED,PAYDURAT,Comment\n" +
-                      "12288,REG,REG HRS,,,9/1/2026,9/1/2026 7:30,9/1/2026 15:30,ADMIN,FALSE,8,\n";
+            var csv = NewHeader.Replace("RECTYP", "File Date") + "\n" + OtcRow + "\n";
 
-            var read = Assert.Single(Read(csv));
+            var reads = Read(csv);
 
-            Assert.True(read.IsValid);
-            Assert.Equal(" ", read.Record.RECTYP);
+            //RECTYP is a required column: the header check fails and so does every data row
+            Assert.NotEmpty(reads);
+            Assert.All(reads, r => { Assert.False(r.IsValid); Assert.Contains("RECTYP", r.Errors); });
         }
 
         [Fact]
-        public void RectypLongerThan50_IsTruncatedTo50()
+        public void RectypLongerThan50_IsReadUnchanged_ForTheValidatorToReject()
         {
             var longValue = new string('A', 60);
             var row = OtcRow.Replace("PPE 09/13", longValue);
 
             var rec = Assert.Single(Read($"{NewHeader}\n{row}\n")).Record;
 
-            Assert.Equal(new string('A', 50), rec.RECTYP);
+            Assert.Equal(longValue, rec.RECTYP);
         }
 
         [Fact]

@@ -142,7 +142,7 @@ namespace BocaAPI.Services
         }
 
         //VCS does not quote Comment, so a line break in a comment starts a new "row" holding just the rest of the comment
-        //(and the File Date). It is not a time record: no pay code, dates or hours, so it is not counted as a record
+        //(and the RECTYP). It is not a time record: no pay code, dates or hours, so it is not counted as a record
         private static readonly string[] RecordColumns = { "WCPID", "ROSDT", "STRDT", "ENDDT", "PAYDURAT" };
         public static bool IsCommentFragment(CsvExtensions.CsvReadResult<VCSExport> r) =>
             !r.IsValid && r.Fields != null && RecordColumns.All(c => !r.Fields.TryGetValue(c, out var v) || string.IsNullOrWhiteSpace(v));

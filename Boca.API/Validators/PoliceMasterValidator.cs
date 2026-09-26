@@ -20,6 +20,7 @@
             RuleFor(r => r.ENDDT).Cascade(CascadeMode.Stop).NotEmpty().InclusiveBetween(SmallDateTimeMin, SmallDateTimeMax);
             RuleFor(r => r.SHFTAB).NotNull();
             RuleFor(r => r.REMOVED).NotNull();
+            RuleFor(r => r.RECTYP).NotNull().MaximumLength(50);
             RuleFor(r => r.PAYDURAT).NotNull().ScalePrecision(3, 18);
             RuleFor(r => r.Comment).MaximumLength(1028);
         }
