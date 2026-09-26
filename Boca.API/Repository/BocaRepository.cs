@@ -123,7 +123,7 @@ namespace BocaAPI.Repository
                                    ;", param
                         );
             }
-           var rtn = await db.QueryAsync<RawExportData>(" select payid, wcpid,rosdate, payduration, comment, shftab from police_master where InsertId=@InsertId", 
+           var rtn = await db.QueryAsync<RawExportData>(" select payid, wcpid,rosdate, strdate, payduration, comment, shftab from police_master where InsertId=@InsertId", 
                         new { InsertId = InsertId }); 
            return rtn;
 
@@ -132,7 +132,7 @@ namespace BocaAPI.Repository
         public async Task<IEnumerable<RawExportData>> GetForOutput(string InsertId)
         {
             //requested to empty comments
-            var rtn = await db.QueryAsync<RawExportData>(" select payid, wcpid,rosdate, payduration, comment, shftab from police_master where InsertId=@InsertId",
+            var rtn = await db.QueryAsync<RawExportData>(" select payid, wcpid,rosdate, strdate, payduration, comment, shftab from police_master where InsertId=@InsertId",
                         new { InsertId = InsertId });
             return rtn;
         }

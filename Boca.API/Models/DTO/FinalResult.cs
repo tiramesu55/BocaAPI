@@ -27,7 +27,7 @@ namespace BocaAPI.Models.DTO
         {
 			EmployeeNumber = export.PayId;
 			AssignmentNumber = $"E{export.PayId}";
-			Date = export.ROSDate.ToString(@"MM/dd/yyyy", CultureInfo.InvariantCulture);
+			Date = export.STRDate.ToString(@"MM/dd/yyyy", CultureInfo.InvariantCulture);
 			Hours = rf.Infinium_Codes == "CTE" || rf.Infinium_Codes == "CTEJ" ? Math.Round(export.PayDuration * (decimal)1.5 , 2)  : Math.Round(export.PayDuration, 2);
 			Comments = ""; //Boca requested empty comment in result //export.Comment;
 			StartTime = default;

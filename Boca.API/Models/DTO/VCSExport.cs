@@ -15,7 +15,10 @@ namespace BocaAPI.Models.DTO
         [Name("ENDDT")] public DateTime ENDDT { get; set; }
         [Name("SHFTAB")] public string SHFTAB { get; set; }
         [Name("REMOVED")] public string REMOVED { get; set; }
-        [Name("RECTYP")] public string RECTYP { get; set; }
+        //RECTYP is no longer sent by VCS (replaced by "File Date"); optional, defaults to " " when neither column exists
+        //not validated anymore, so cap at the police_master.RecType size nvarchar(50)
+        private string _rectyp = " ";
+        [Name("RECTYP", "File Date")][Optional] public string RECTYP { get => _rectyp; set => _rectyp = value?.Length > 50 ? value[..50] : value; }
         [Name("PAYDURAT")] public decimal PAYDURAT { get; set; }
         [Name("Comment")] public string Comment { get; set; }
 

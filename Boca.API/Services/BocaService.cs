@@ -79,7 +79,7 @@ namespace BocaAPI.Services
                                  TimeStamp = DateTime.Now,
                                  EmployeeNumber = r.Record.PAYID,
                                  PayrollTimeType = r.Record.WCPID,
-                                 Date = r.Record.ROSDT,
+                                 Date = r.Record.STRDT,
                                  Hours = r.Record.PAYDURAT
                              }));
 
