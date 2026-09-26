@@ -12,7 +12,7 @@
             RuleFor(r => r.ReasonCode).MaximumLength(16);
             RuleFor(r => r.Reason).MaximumLength(128);
             RuleFor(r => r.ROSDT).NotEmpty();
-            RuleFor(r => r.STRDT).NotNull();
+            RuleFor(r => r.STRDT).NotEmpty();  //STRDT is the exported date, so it must be a real date
             RuleFor(r => r.ENDDT).NotNull();
             RuleFor(r => r.SHFTAB).NotNull();
             RuleFor(r => r.REMOVED).NotNull();
